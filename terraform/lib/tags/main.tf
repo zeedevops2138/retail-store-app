@@ -6,7 +6,7 @@ variable "environment_name" {
 output "result" {
   value = {
     environment-name = var.environment_name
-    created-by       = "retail-store-sample-app"
+    created-by       = "TrainWithShubhamCommunity"
   }
   description = "Computed tag results"
 }

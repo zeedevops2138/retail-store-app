@@ -1,97 +1,20 @@
 module "eks_cluster" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 19.9"
-
-  providers = {
-    kubernetes = kubernetes.cluster
-  }
+  version = "~> 20.31"
 
   cluster_name                   = var.environment_name
   cluster_version                = var.cluster_version
   cluster_endpoint_public_access = true
+  enable_cluster_creator_admin_permissions = true
 
-  cluster_addons = {
-    vpc-cni = {
-      before_compute = true
-      most_recent    = true
-      configuration_values = jsonencode({
-        env = {
-          ENABLE_POD_ENI                    = "true"
-          POD_SECURITY_GROUP_ENFORCING_MODE = "standard"
-        }
-      })
-    }
+  # EKS Auto Mode only
+  cluster_compute_config = {
+    enabled    = true
+    node_pools = ["general-purpose"]
   }
 
-  vpc_id = var.vpc_id
-
-  subnet_ids               = var.subnet_ids
-  control_plane_subnet_ids = var.subnet_ids
-
-  eks_managed_node_groups = {
-    node_group_1 = {
-      name                 = "managed-nodegroup-1"
-      instance_types       = ["m5.large"]
-      subnet_ids           = [var.subnet_ids[0]]
-      force_update_version = true
-
-      min_size     = 1
-      max_size     = 3
-      desired_size = 1
-    }
-
-    node_group_2 = {
-      name                 = "managed-nodegroup-2"
-      instance_types       = ["m5.large"]
-      subnet_ids           = [var.subnet_ids[1]]
-      force_update_version = true
-
-      min_size     = 1
-      max_size     = 3
-      desired_size = 1
-    }
-
-    node_group_3 = {
-      name                 = "managed-nodegroup-3"
-      instance_types       = ["m5.large"]
-      subnet_ids           = [var.subnet_ids[2]]
-      force_update_version = true
-
-      min_size     = 1
-      max_size     = 3
-      desired_size = 1
-    }
-  }
-
-  node_security_group_additional_rules = {
-    ingress_self_all = {
-      description = "Node to node all ports/protocols"
-      protocol    = "-1"
-      from_port   = 0
-      to_port     = 0
-      type        = "ingress"
-      self        = true
-    }
-
-    egress_all = {
-      description      = "Node all egress"
-      protocol         = "-1"
-      from_port        = 0
-      to_port          = 0
-      type             = "egress"
-      cidr_blocks      = ["0.0.0.0/0"]
-      ipv6_cidr_blocks = ["::/0"]
-    }
-
-    ingress_cluster_to_node_all_traffic = {
-      description                   = "Cluster API to Nodegroup all traffic"
-      protocol                      = "-1"
-      from_port                     = 0
-      to_port                       = 0
-      type                          = "ingress"
-      source_cluster_security_group = true
-    }
-  }
+  vpc_id     = var.vpc_id
+  subnet_ids = var.subnet_ids
 
   tags = var.tags
 }
