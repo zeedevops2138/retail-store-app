@@ -1,15 +1,24 @@
 # AWS Containers Retail Sample - EKS Terraform (Default)
 
-This Terraform module creates all the necessary infrastructure and deploys the retail sample application on [Amazon Elastic Kubernetes Service](https://aws.amazon.com/eks/) (EKS). This configuration will deploy all application dependencies using AWS managed services such as Amazon RDS and Amazon DynamoDB.
+This Terraform module creates all the necessary infrastructure and deploys the retail sample application on [Amazon Elastic Kubernetes Service](https://aws.amazon.com/eks/) (EKS) with **EKS Auto Mode** enabled. This configuration will deploy all application dependencies using AWS managed services such as Amazon RDS and Amazon DynamoDB.
 
 It provides:
 
 - VPC with public and private subnets
-- EKS cluster and managed node groups in multiple availability zones
+- EKS cluster with **EKS Auto Mode** enabled for simplified node management
+- Automatic compute provisioning with general-purpose node pools
 - All application dependencies such as RDS, DynamoDB table, Elasticache etc.
 - Deployment of application component Helm charts
 - (Optional) OpenTelemetry support for logs and traces through AWS Distro for OpenTelemetry
 - (Optional) Istio support
+
+## EKS Auto Mode Benefits
+
+This configuration uses EKS Auto Mode, which provides:
+- **Simplified node management**: No need to configure managed node groups manually
+- **Automatic scaling**: Nodes are provisioned and scaled automatically based on workload demands
+- **Cost optimization**: Automatic rightsizing and efficient resource utilization
+- **Reduced operational overhead**: AWS manages the underlying compute infrastructure
 
 NOTE: This will create resources in your AWS account which will incur costs. You are responsible for these costs, and should understand the resources being created before proceeding.
 
