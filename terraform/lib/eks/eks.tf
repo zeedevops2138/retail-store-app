@@ -37,28 +37,6 @@ resource "aws_security_group_rule" "dns_tcp" {
   security_group_id = module.eks_cluster.node_security_group_id
 }
 
-resource "aws_security_group_rule" "istio" {
-  count = var.istio_enabled ? 1 : 0
-
-  type              = "ingress"
-  from_port         = 15012
-  to_port           = 15012
-  protocol          = "tcp"
-  cidr_blocks       = [var.vpc_cidr]
-  security_group_id = module.eks_cluster.node_security_group_id
-}
-
-resource "aws_security_group_rule" "istio_webhook" {
-  count = var.istio_enabled ? 1 : 0
-
-  type              = "ingress"
-  from_port         = 15017
-  to_port           = 15017
-  protocol          = "tcp"
-  cidr_blocks       = [var.vpc_cidr]
-  security_group_id = module.eks_cluster.node_security_group_id
-}
-
 module "eks_blueprints_addons" {
   source  = "aws-ia/eks-blueprints-addons/aws"
   version = "~> 1.0"
@@ -84,12 +62,5 @@ resource "time_sleep" "addons" {
 resource "null_resource" "cluster_blocker" {
   depends_on = [
     module.eks_cluster
-  ]
-}
-
-resource "null_resource" "addons_blocker" {
-  depends_on = [
-    time_sleep.addons,
-    aws_eks_addon.adot
   ]
 }

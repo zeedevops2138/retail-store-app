@@ -21,17 +21,6 @@ module "vpc" {
   tags = module.tags.result
 }
 
-module "dependencies" {
-  source           = "../../lib/dependencies"
-  environment_name = var.environment_name
-  tags             = module.tags.result
-  vpc_id           = module.vpc.inner.vpc_id
-  subnet_ids       = module.vpc.inner.private_subnets
-  catalog_security_group_id  = module.retail_app_eks.node_security_group_id
-  orders_security_group_id   = module.retail_app_eks.node_security_group_id
-  checkout_security_group_id = module.retail_app_eks.node_security_group_id
-}
-
 module "retail_app_eks" {
   source                                   = "terraform-aws-modules/eks/aws"
   version                                  = "~> 20.31"
