@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 env:
-  AWS_REGION: ap-south-1 # update if different
-  ECR_REGISTRY: 253490792231.dkr.ecr.ap-south-1.amazonaws.com/retail-cart
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
 
 jobs:
   build-and-push:
@@ -24,8 +24,8 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
+          aws-region: ap-south-1
+     
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
