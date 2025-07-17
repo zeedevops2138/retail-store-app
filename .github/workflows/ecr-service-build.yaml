@@ -1,4 +1,4 @@
-name: Build and Push Cart Image
+name: Build and Push Images to ECR
 
 on:
   push:
@@ -11,11 +11,11 @@ jobs:
 
     strategy:
       matrix:
-        service: [cart, catalog, checkout, orders, ui]  # Add services here
+        service: [cart, catalog, checkout, orders, ui]  # Define your services here
 
     env:
       IMAGE_TAG: ${{ github.sha }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_REGION: ap-south-1  
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
     steps:
@@ -27,7 +27,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ap-south-1
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -35,24 +35,23 @@ jobs:
 
       - name: Build Docker image
         run: |
-          ECR_REPO="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-${{ matrix.service }}"
+          ECR_REPO="${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/retail-${{ matrix.service }}"
           docker build -t $ECR_REPO:$IMAGE_TAG ./src/app/${{ matrix.service }}
 
       - name: Scan with Trivy (optional but recommended)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-${{ matrix.service }}:${{ github.sha }}
+          image-ref: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/retail-${{ matrix.service }}:${{ github.sha }}
           format: table
-          exit-code: 0  # Don't fail the job on vulnerabilities
-
+          exit-code: 0  
       - name: Push image to ECR
         run: |
-          ECR_REPO="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-${{ matrix.service }}"
+          ECR_REPO="${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/retail-${{ matrix.service }}"
           docker push $ECR_REPO:$IMAGE_TAG
 
       - name: Update Helm values.yaml with new image tag
         run: |
-          ECR_REPO="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-${{ matrix.service }}"
+          ECR_REPO="${AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/retail-${{ matrix.service }}"
           sed -i "s|repository: .*|repository: $ECR_REPO|" src/app/${{ matrix.service }}/chart/values.yaml
           sed -i "s|tag: .*|tag: $IMAGE_TAG|" src/app/${{ matrix.service }}/chart/values.yaml
 
@@ -63,3 +62,4 @@ jobs:
           git add src/app/${{ matrix.service }}/chart/values.yaml
           git commit -m "Update image for ${{ matrix.service }} to $IMAGE_TAG" || echo "No changes to commit"
           git push
+
