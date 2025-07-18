@@ -140,3 +140,4 @@ curl http://orders/health
 ```
 kubectl get svc -n ui
 ```
+![Uploading Screenshot 2025-07-15 at 4.01.00 PM.png…]()
