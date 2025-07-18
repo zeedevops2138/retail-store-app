@@ -52,129 +52,54 @@ The application has been deliberately over-engineered to generate multiple de-co
 
 ## Quickstart
 
-### Docker
+##  Architecture Diagram for Creating Application
 
-This deployment method will run the application as a single container on your local machine using `docker`.
 
-Pre-requisites:
+### Resources Created usng Terraform
 
-- Docker installed locally
+A fully automated, production-ready infrastructure and deployment pipeline for a microservices-based Application using:
 
-Run the container:
+- **VPC** (Subnets, Route Tables, IGW, NAT Gateway)
+- **Amazon EKS** (Elastic Kubernetes Service)
+- **EKS IAM Roles**
+- **Security Groups**
+- **Bastion Host** for secure Kubernetes cluster access
+- **Docker** for containerization
+- **Argo CD** for GitOps-based automated deployment
 
-```
-docker run -it --rm -p 8888:8080 public.ecr.aws/aws-containers/retail-store-sample-ui:1.0.0
-```
+## Quickstart
 
-Open the frontend in a browser window:
+The following sections provide quickstart instructions for various platforms.
 
-```
-http://localhost:8888
-```
 
-To stop the container in `docker` use Ctrl+C.
+### Step 1: Terraform
 
-### Docker Compose
-
-This deployment method will run the application on your local machine using `docker-compose`.
-
-Pre-requisites:
-
-- Docker installed locally
-
-Download the latest Docker Compose file and use `docker compose` to run the application containers:
+Run the following to create the entire Infrastructure
 
 ```
-wget https://github.com/aws-containers/retail-store-sample-app/releases/latest/download/docker-compose.yaml
-
-DB_PASSWORD='<some password>' docker compose --file docker-compose.yaml up
+terraform init
+terraform plan
+terraform apply --auto-approve
 ```
 
-Open the frontend in a browser window:
-
+## Step 2: ECR-Repository Creation
+Run the following Command to create Repositories in ECR:
 ```
-http://localhost:8888
+aws ecr create-repository --repository-name <your repo name > --region <repo region>
 ```
+<img width="2940" height="1059" alt="image" src="https://github.com/user-attachments/assets/5305275c-b55a-47ae-b8dd-d22fa1d9582e" />
 
-To stop the containers in `docker compose` use Ctrl+C. To delete all the containers and related resources run:
+### Step 3: GitHub Actions
 
-```
-docker compose -f docker-compose.yaml down
-```
+Use GitHub Actions to build Docker images and push to ECR
 
-### Kubernetes
+**Create an IAM User, provide required policies, and Generate Credentails**
 
-This deployment method will run the application in an existing Kubernetes cluster.
+**Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret.**
+| Secret Name           | Value                              |
+|-----------------------|------------------------------------|
+| `AWS_ACCESS_KEY_ID`   | *Your AWS Access Key ID*           |
+| `AWS_SECRET_ACCESS_KEY` | *Your AWS Secret Access Key*     |
+| `AWS_REGION`          | `region-name`                       |
+| `ECR_REGISTRY`        | `your-account-id.dkr.ecr.ap-south-1.amazonaws.com` |
 
-Pre-requisites:
-
-- Kubernetes cluster
-- `kubectl` installed locally
-
-Use `kubectl` to run the application:
-
-```
-kubectl apply -f https://github.com/aws-containers/retail-store-sample-app/releases/latest/download/kubernetes.yaml
-kubectl wait --for=condition=available deployments --all
-```
-
-Get the URL for the frontend load balancer like so:
-
-```
-kubectl get svc ui
-```
-
-To remove the application use `kubectl` again:
-
-```
-kubectl delete -f https://github.com/aws-containers/retail-store-sample-app/releases/latest/download/kubernetes.yaml
-```
-
-### Terraform
-
-The following options are available to deploy the application using Terraform:
-
-| Name                                             | Description                                                                                                     |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| [Amazon EKS](./terraform/eks/default/)           | Deploys the application to Amazon EKS using other AWS services for dependencies, such as RDS, DynamoDB etc.     |
-| [Amazon EKS (Minimal)](./terraform/eks/minimal/) | Deploys the application to Amazon EKS using in-cluster dependencies instead of RDS, DynamoDB etc.               |
-| [Amazon ECS](./terraform/ecs/default/)           | Deploys the application to Amazon ECS using other AWS services for dependencies, such as RDS, DynamoDB etc.     |
-| [AWS App Runner](./terraform/apprunner/)         | Deploys the application to AWS App Runner using other AWS services for dependencies, such as RDS, DynamoDB etc. |
-
-## Security
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
-
-## License
-
-This project is licensed under the MIT-0 License.
-
-This package depends on and may incorporate or retrieve a number of third-party
-software packages (such as open source packages) at install-time or build-time
-or run-time ("External Dependencies"). The External Dependencies are subject to
-license terms that you must accept in order to use this package. If you do not
-accept all of the applicable license terms, you should not use this package. We
-recommend that you consult your company’s open source approval policy before
-proceeding.
-
-Provided below is a list of External Dependencies and the applicable license
-identification as indicated by the documentation associated with the External
-Dependencies as of Amazon's most recent review.
-
-THIS INFORMATION IS PROVIDED FOR CONVENIENCE ONLY. AMAZON DOES NOT PROMISE THAT
-THE LIST OR THE APPLICABLE TERMS AND CONDITIONS ARE COMPLETE, ACCURATE, OR
-UP-TO-DATE, AND AMAZON WILL HAVE NO LIABILITY FOR ANY INACCURACIES. YOU SHOULD
-CONSULT THE DOWNLOAD SITES FOR THE EXTERNAL DEPENDENCIES FOR THE MOST COMPLETE
-AND UP-TO-DATE LICENSING INFORMATION.
-
-YOUR USE OF THE EXTERNAL DEPENDENCIES IS AT YOUR SOLE RISK. IN NO EVENT WILL
-AMAZON BE LIABLE FOR ANY DAMAGES, INCLUDING WITHOUT LIMITATION ANY DIRECT,
-INDIRECT, CONSEQUENTIAL, SPECIAL, INCIDENTAL, OR PUNITIVE DAMAGES (INCLUDING
-FOR ANY LOSS OF GOODWILL, BUSINESS INTERRUPTION, LOST PROFITS OR DATA, OR
-COMPUTER FAILURE OR MALFUNCTION) ARISING FROM OR RELATING TO THE EXTERNAL
-DEPENDENCIES, HOWEVER CAUSED AND REGARDLESS OF THE THEORY OF LIABILITY, EVEN
-IF AMAZON HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. THESE LIMITATIONS
-AND DISCLAIMERS APPLY EXCEPT TO THE EXTENT PROHIBITED BY APPLICABLE LAW.
-
-MariaDB Community License - [LICENSE](https://mariadb.com/kb/en/mariadb-licenses/)
-MySQL Community Edition - [LICENSE](https://github.com/mysql/mysql-server/blob/8.0/LICENSE)
