@@ -80,7 +80,7 @@ terraform plan
 terraform apply --auto-approve
 ```
 
-** Configure kubectl to Access EKS
+Configure kubectl to Access EKS
 ```
 aws eks update-kubeconfig --name <your-eks-cluster-name>
 kubectl get nodes 
