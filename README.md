@@ -91,24 +91,6 @@ Use GitHub Actions to build Docker images and push to ECR
 | `AWS_REGION`          | `ap-south-1`                       |
 | `ECR_REGISTRY`        | `your-account-id.dkr.ecr.ap-south-1.amazonaws.com` |
 
-```
-## Add AWS_ACCESS_KEY_ID
-< Your AWS Access Key ID>
-
-
-## Add AWS_ACCESS_KEY_ID
-< Your AWS Access Key ID>
-
-
-## AWS_SECRET_ACCESS_KEY
-<Your AWS Secret Access Key>
-
-## AWS_Region
- AWS_REGION ap-south-1
- 
-## ECR Registry
- ECR_REGISTRY	<ECR-Repo-URL>
-```
 
 ### Docker
 
