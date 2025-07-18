@@ -122,10 +122,9 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 <img width="2911" height="1595" alt="image" src="https://github.com/user-attachments/assets/a0a4c296-580f-431b-8b9f-0e268c8c27f5" />
 
 
-## Verify Kubernetes Services & Pods
+## Verify Kubernetes Pods
 ```
 kubectl get pods
-kubectl get svc
 ```
 ## Test Internal Service Communication 
 ```
@@ -137,4 +136,7 @@ curl http://catalog/health
 curl http://checkout/health
 curl http://orders/health
 ```
-
+## Verify Services 
+```
+kubectl get svc -n ui
+``
