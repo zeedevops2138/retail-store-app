@@ -34,7 +34,7 @@ See the [features documentation](./docs/features.md) for more information.
 
 ![Screenshot](/docs/images/screenshot.png)
 
-## Application Architecture
+## Architecture Diagram for Creating Application
 
 The application has been deliberately over-engineered to generate multiple de-coupled components. These components generally have different infrastructure dependencies, and may support multiple "backends" (example: Carts service supports MongoDB or DynamoDB).
 
