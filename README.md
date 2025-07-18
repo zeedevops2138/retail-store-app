@@ -84,7 +84,7 @@ Use GitHub Actions to build Docker images and push to ECR
 **Create an IAM User, provide required policies, and Generate Credentails**
 
 **Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret.**
-
+```
 ## Add AWS_ACCESS_KEY_ID
 < Your AWS Access Key ID>
 
@@ -101,6 +101,7 @@ Use GitHub Actions to build Docker images and push to ECR
  
 ## ECR Registry
  ECR_REGISTRY	<ECR-Repo-URL>
+```
 
 ### Docker
 
