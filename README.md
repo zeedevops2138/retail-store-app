@@ -52,12 +52,12 @@ The application has been deliberately over-engineered to generate multiple de-co
 ##  Architecture Diagram for Creating Application
 
 
-### Resources Created usng Terraform
+### Resources Created using Terraform
 
 A fully automated, production-ready infrastructure and deployment pipeline for a microservices-based Application using:
 
 - **VPC** (Subnets, Route Tables, IGW, NAT Gateway)
-- **Amazon EKS** (Elastic Kubernetes Service)
+- **Amazon EKS** (Elastic Kubernetes Service & EKS Auto Mode)
 - **EKS IAM Roles**
 - **Security Groups**
 - **Bastion Host** for secure Kubernetes cluster access
