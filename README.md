@@ -67,7 +67,7 @@ A fully automated, production-ready infrastructure and deployment pipeline for a
 
 The following sections provide quickstart instructions for various platforms.
 
-### Step1: Terraform
+### Step 1: Terraform
 
 Run the following to create the entire Infrastructure
 
@@ -77,7 +77,7 @@ terraform plan
 terraform apply -auto-approve
 ```
 
-### Step2: GitHub Actions
+### Step 2: GitHub Actions
 
 Use GitHub Actions to build Docker images and push to ECR
 
@@ -85,12 +85,21 @@ Use GitHub Actions to build Docker images and push to ECR
 
 **Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret.**
 
-AWS_ACCESS_KEY_ID	< Your AWS Access Key ID>
+# Add AWS_ACCESS_KEY_ID
+< Your AWS Access Key ID>
 
- AWS_SECRET_ACCESS_KEY	<Your AWS Secret Access Key>
 
+# Add AWS_ACCESS_KEY_ID
+< Your AWS Access Key ID>
+
+
+# AWS_SECRET_ACCESS_KEY
+<Your AWS Secret Access Key>
+
+# AWS_Region
  AWS_REGION	ap-south-1
-
+ 
+# ECR Registry
  ECR_REGISTRY	<ECR-Repo-URL>
 
 ### Docker
