@@ -77,6 +77,14 @@ terraform plan
 terraform apply -auto-approve
 ```
 
+### GitHub Actions
+Use GitHub Actions to build Docker images and push to ECR
+
+Create an IAM User, provide required policies, and Generate Credentails
+
+**Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret.**
+
+
 ### Docker
 
 This deployment method will run the application as a single container on your local machine using `docker`.
