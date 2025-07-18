@@ -83,7 +83,7 @@ terraform apply --auto-approve
 ## Step 2: ECR-Repository Creation
 Run the following Command to create Repositories in ECR:
 ```
-aws ecr create-repository --repository-name <your repo name > --region <repo region>
+aws ecr create-repository --repository-name <your-repo-name > --region <repo-region>
 ```
 <img width="2940" height="1059" alt="image" src="https://github.com/user-attachments/assets/5305275c-b55a-47ae-b8dd-d22fa1d9582e" />
 
