@@ -52,7 +52,7 @@ The application has been deliberately over-engineered to generate multiple de-co
 
 ## Quickstart
 
-### Step 3: Docker
+### Docker
 
 This deployment method will run the application as a single container on your local machine using `docker`.
 
