@@ -97,7 +97,7 @@ Use GitHub Actions to build Docker images and push to ECR
 <Your AWS Secret Access Key>
 
 ## AWS_Region
- AWS_REGION	ap-south-1
+ AWS_REGIONap-south-1
  
 ## ECR Registry
  ECR_REGISTRY	<ECR-Repo-URL>
