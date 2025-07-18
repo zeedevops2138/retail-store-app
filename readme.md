@@ -12,9 +12,11 @@ A fully automated, production-ready infrastructure and deployment pipeline for a
 - **Bastion Host** for secure Kubernetes cluster access
 - **Docker** for containerization
 - **Argo CD** for GitOps-based automated deployment
+
 ## Quickstart
 
 The following sections provide quickstart instructions for various platforms.
+
 
 ### Step 1: Terraform
 
@@ -39,6 +41,8 @@ Use GitHub Actions to build Docker images and push to ECR
 | `AWS_SECRET_ACCESS_KEY` | *Your AWS Secret Access Key*     |
 | `AWS_REGION`          | `region-name`                       |
 | `ECR_REGISTRY`        | `your-account-id.dkr.ecr.ap-south-1.amazonaws.com` |
+
+##Step 3: 
 
 
 
