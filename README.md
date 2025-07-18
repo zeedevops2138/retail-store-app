@@ -59,7 +59,7 @@ A fully automated, production-ready infrastructure and deployment pipeline for a
 - **VPC** (Subnets, Route Tables, IGW, NAT Gateway)
 - **Amazon EKS** (Elastic Kubernetes Service)
 - **EKS Auto Mode**
-- **EKS IAM Roles**
+- **IAM Roles**
 - **Security Groups**
 - **Bastion Host** for secure Kubernetes cluster access
 - **Docker** for containerization
