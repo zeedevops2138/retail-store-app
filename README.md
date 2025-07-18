@@ -114,10 +114,11 @@ kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
-## Port-forward to Argo CD UI and login
+Port-forward to Argo CD UI and login
 ```
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
+
 <img width="2911" height="1595" alt="image" src="https://github.com/user-attachments/assets/a0a4c296-580f-431b-8b9f-0e268c8c27f5" />
 
 
