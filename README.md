@@ -92,7 +92,7 @@ Use GitHub Actions to build Docker images and push to ECR
 | `ECR_REGISTRY`        | `your-account-id.dkr.ecr.ap-south-1.amazonaws.com` |
 
 
-### Docker
+### Step 3: Docker
 
 This deployment method will run the application as a single container on your local machine using `docker`.
 
