@@ -81,11 +81,15 @@ terraform apply -auto-approve
 
 Use GitHub Actions to build Docker images and push to ECR
 
-Create an IAM User, provide required policies, and Generate Credentails
+**Create an IAM User, provide required policies, and Generate Credentails**
 
 **Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret.**
-
-
+```
+AWS_ACCESS_KEY_ID	<Your AWS Access Key ID>
+AWS_SECRET_ACCESS_KEY	<Your AWS Secret Access Key>
+AWS_REGION	ap-south-1
+ECR_REGISTRY	<ECR-Repo-URL>
+```
 ### Docker
 
 This deployment method will run the application as a single container on your local machine using `docker`.
