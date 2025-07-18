@@ -79,6 +79,11 @@ terraform init
 terraform plan
 terraform apply --auto-approve
 ```
+```
+# Configure kubectl to Access EKS
+aws eks update-kubeconfig --name your-eks-cluster-name
+kubectl get nodes  # To verify access
+```
 
 ## Step 2: ECR-Repository Creation
 Run the following Command to create Repositories in ECR:
@@ -106,5 +111,10 @@ Argo CD (Continuous Integration) Installation
 ```
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+Port-forward to Argo CD UI
+```
+kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
