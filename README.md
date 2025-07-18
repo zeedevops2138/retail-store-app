@@ -81,8 +81,8 @@ terraform apply --auto-approve
 ```
 ```
 # Configure kubectl to Access EKS
-aws eks update-kubeconfig --name your-eks-cluster-name
-kubectl get nodes  # To verify access
+aws eks update-kubeconfig --name <your-eks-cluster-name>
+kubectl get nodes 
 ```
 
 ## Step 2: ECR-Repository Creation
