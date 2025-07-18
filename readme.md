@@ -25,7 +25,7 @@ Run the following to create the entire Infrastructure
 ```
 terraform init
 terraform plan
-terraform apply -auto-approve
+terraform apply --auto-approve
 ```
 
 ### Step 2: GitHub Actions
