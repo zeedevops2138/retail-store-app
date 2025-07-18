@@ -67,7 +67,7 @@ A fully automated, production-ready infrastructure and deployment pipeline for a
 
 The following sections provide quickstart instructions for various platforms.
 
-### Terraform
+### Step1: Terraform
 
 Run the following to create the entire Infrastructure
 
