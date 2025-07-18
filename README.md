@@ -140,4 +140,5 @@ curl http://orders/health
 ```
 kubectl get svc -n ui
 ```
-![Uploading Screenshot 2025-07-15 at 4.01.00 PM.png…]()
+<img width="1470" height="956" alt="Screenshot 2025-07-15 at 4 01 00 PM" src="https://github.com/user-attachments/assets/6c5e6d45-1e77-4043-b485-0e310e38af02" />
+
