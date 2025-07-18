@@ -77,7 +77,7 @@ terraform plan
 terraform apply -auto-approve
 ```
 
-### GitHub Actions
+### Step2: GitHub Actions
 
 Use GitHub Actions to build Docker images and push to ECR
 
