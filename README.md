@@ -34,7 +34,7 @@ See the [features documentation](./docs/features.md) for more information.
 
 ![Screenshot](/docs/images/screenshot.png)
 
-## Architecture Diagram for Creating Application
+## Application Architecture 
 
 The application has been deliberately over-engineered to generate multiple de-coupled components. These components generally have different infrastructure dependencies, and may support multiple "backends" (example: Carts service supports MongoDB or DynamoDB).
 
@@ -48,7 +48,8 @@ The application has been deliberately over-engineered to generate multiple de-co
 | [Orders](./src/orders)     | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-orders)   | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-orders-chart)   | User orders API                         |
 | [Checkout](./src/checkout) | Node     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-checkout) | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-checkout-chart) | API to orchestrate the checkout process |
 
-## Application Diagram
+##  Architecture Diagram for Creating Application
+
 
 ## Quickstart
 
