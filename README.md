@@ -102,7 +102,7 @@ Use GitHub Actions to build Docker images and push to ECR
 | `ECR_REGISTRY`        | `your-account-id.dkr.ecr.ap-south-1.amazonaws.com` |
 
 ## Step 4: Argo CD Automated Deployment
-Argo CD Installation
+Argo CD (Continuous Integration) Installation
 ```
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
