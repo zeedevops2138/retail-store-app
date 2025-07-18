@@ -78,6 +78,7 @@ terraform apply -auto-approve
 ```
 
 ### GitHub Actions
+
 Use GitHub Actions to build Docker images and push to ECR
 
 Create an IAM User, provide required policies, and Generate Credentails
