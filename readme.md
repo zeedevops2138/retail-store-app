@@ -40,3 +40,5 @@ Use GitHub Actions to build Docker images and push to ECR
 | `AWS_REGION`          | `region-name`                       |
 | `ECR_REGISTRY`        | `your-account-id.dkr.ecr.ap-south-1.amazonaws.com` |
 
+
+
