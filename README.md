@@ -139,4 +139,4 @@ curl http://orders/health
 ## Verify Services 
 ```
 kubectl get svc -n ui
-``
+```
