@@ -29,7 +29,7 @@ terraform apply --auto-approve
 ```
 
 ## Step 2: ECR-Repository Creation
-Run the following Command to create Repository in ECR:
+Run the following Command to create Repositories in ECR:
 ```
 aws ecr create-repository --repository-name your-repo-name --region your-region
 ```
