@@ -127,3 +127,13 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 kubectl get pods
 kubectl get svc
 ```
+## Test Internal Service Communication 
+```
+kubectl exec -it deploy/ui -- sh
+```
+```
+curl http://carts/health
+curl http://catalog/health
+curl http://checkout/health
+curl http://orders/health
+```
