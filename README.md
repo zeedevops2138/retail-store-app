@@ -48,6 +48,8 @@ The application has been deliberately over-engineered to generate multiple de-co
 | [Orders](./src/orders)     | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-orders)   | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-orders-chart)   | User orders API                         |
 | [Checkout](./src/checkout) | Node     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-checkout) | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-checkout-chart) | API to orchestrate the checkout process |
 
+## Application Diagram
+
 ## Quickstart
 
 The following sections provide quickstart instructions for various platforms.
