@@ -139,12 +139,23 @@ jobs:
             sed -i "s|tag: \".*\"|tag: \"$IMAGE_TAG\"|" src/${{ matrix.service }}/chart/values.yaml
           fi
           
-          # Commit and push the changes
-          git config --global user.email "ci@example.com"
-          git config --global user.name "CI Bot"
-          git add src/${{ matrix.service }}/chart/values.yaml
-          git commit -m "Update ${{ matrix.service }} image to $IMAGE_TAG" || echo "No changes to commit"
-          git push
+          echo "Updated ${{ matrix.service }} image to $IMAGE_TAG"
+          echo "ECR Repository: $ECR_REPO"
+          echo "Image Tag: $IMAGE_TAG"
+          
+          # Create a summary file for manual review
+          echo "## ${{ matrix.service }} Image Update" >> image-updates.md
+          echo "- Repository: $ECR_REPO" >> image-updates.md
+          echo "- Tag: $IMAGE_TAG" >> image-updates.md
+          echo "- Commit: ${{ github.sha }}" >> image-updates.md
+          echo "" >> image-updates.md
+
+      - name: Upload image updates summary
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-updates-${{ matrix.service }}
+          path: image-updates.md
 
   security-scan:
     name: Security Scan

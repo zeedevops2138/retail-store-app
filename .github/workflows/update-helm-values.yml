@@ -1,0 +1,95 @@
+name: Update Helm Values
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to update (cart, catalog, checkout, orders, ui)'
+        required: true
+        type: choice
+        options:
+          - cart
+          - catalog
+          - checkout
+          - orders
+          - ui
+      image_tag:
+        description: 'Image tag to use (default: latest)'
+        required: false
+        type: string
+        default: 'latest'
+
+permissions:
+  contents: write
+
+jobs:
+  update-values:
+    name: Update Helm Values
+    runs-on: ubuntu-latest
+    environment: retail-shop
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod a+x /usr/local/bin/yq
+
+      - name: Update Helm values
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          
+          if [ "$IMAGE_TAG" = "latest" ]; then
+            IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          fi
+          
+          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-$SERVICE"
+          
+          echo "Updating $SERVICE with image tag: $IMAGE_TAG"
+          echo "ECR Repository: $ECR_REPO"
+          
+          # Update the values.yaml file using yq
+          yq eval ".image.repository = \"$ECR_REPO\"" -i src/$SERVICE/chart/values.yaml
+          yq eval ".image.tag = \"$IMAGE_TAG\"" -i src/$SERVICE/chart/values.yaml
+          
+          # Show the changes
+          git diff src/$SERVICE/chart/values.yaml
+
+      - name: Commit and push changes
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          
+          if [ "$IMAGE_TAG" = "latest" ]; then
+            IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          fi
+          
+          # Configure git
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI Bot"
+          
+          # Check if there are any changes to commit
+          if git diff --quiet src/$SERVICE/chart/values.yaml; then
+            echo "No changes to commit for $SERVICE"
+            exit 0
+          fi
+          
+          # Add and commit changes
+          git add src/$SERVICE/chart/values.yaml
+          git commit -m "Update $SERVICE image to $IMAGE_TAG"
+          
+          # Push changes
+          git push origin main
+          
+          echo "Successfully updated $SERVICE image to $IMAGE_TAG" 
