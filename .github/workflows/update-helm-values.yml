@@ -31,50 +31,59 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod a+x /usr/local/bin/yq
 
-      - name: Determine image tag
-        id: image-tag
+      - name: Generate industry-standard tag
+        id: tag
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # For manual runs, use latest
-            echo "tag=latest" >> $GITHUB_OUTPUT
-          else
-            # For automated runs, use commit SHA
-            echo "tag=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
-          fi
+          # Industry-standard tagging strategy
+          GIT_COMMIT=$(git rev-parse --short HEAD)
+          GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          
+          # Use combined tag for production deployments (recommended)
+          COMBINED_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
+          
+          echo "git-commit=${GIT_COMMIT}" >> $GITHUB_OUTPUT
+          echo "git-branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
+          echo "combined-tag=${COMBINED_TAG}" >> $GITHUB_OUTPUT
+          
+          echo "📋 Generated Tag Information:"
+          echo "  Git Commit: ${GIT_COMMIT}"
+          echo "  Git Branch: ${GIT_BRANCH}"
+          echo "  Combined Tag: ${COMBINED_TAG}"
 
-      - name: Update all Helm values
+      - name: Update all Helm values with industry-standard tags
         run: |
-          IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
+          COMBINED_TAG="${{ steps.tag.outputs.combined-tag }}"
           SERVICES=("cart" "catalog" "checkout" "orders" "ui")
           
-          echo "Updating all services with image tag: main-$IMAGE_TAG"
+          echo "🏷️  Updating all services with industry-standard tag: ${COMBINED_TAG}"
           
           for SERVICE in "${SERVICES[@]}"; do
-            echo "Processing service: $SERVICE"
+            echo "Processing service: ${SERVICE}"
             
-            ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-$SERVICE"
+            ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${SERVICE}"
             
-            echo "ECR Repository: $ECR_REPO"
+            echo "  Repository: ${ECR_REPO}"
+            echo "  Tag: ${COMBINED_TAG}"
             
-            # Update the values.yaml file using yq with main- prefix to match ECR tagging
-            yq eval ".image.repository = \"$ECR_REPO\"" -i src/$SERVICE/chart/values.yaml
-            yq eval ".image.tag = \"main-$IMAGE_TAG\"" -i src/$SERVICE/chart/values.yaml
+            # Update the values.yaml file using yq with industry-standard combined tag
+            yq eval ".image.repository = \"${ECR_REPO}\"" -i src/${SERVICE}/chart/values.yaml
+            yq eval ".image.tag = \"${COMBINED_TAG}\"" -i src/${SERVICE}/chart/values.yaml
             
-            echo "Updated $SERVICE values.yaml"
+            echo "  ✅ Updated ${SERVICE} values.yaml"
             
             # Show the changes for this service
-            echo "Changes for $SERVICE:"
-            git diff src/$SERVICE/chart/values.yaml || echo "No changes for $SERVICE"
-            echo "---"
+            echo "  📝 Changes for ${SERVICE}:"
+            git diff src/${SERVICE}/chart/values.yaml || echo "  No changes for ${SERVICE}"
+            echo "  ---"
           done
 
       - name: Commit and push all changes
         run: |
-          IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
+          COMBINED_TAG="${{ steps.tag.outputs.combined-tag }}"
           
           # Configure git
-          git config --global user.email "ci@example.com"
-          git config --global user.name "CI Bot"
+          git config --global user.email "ci@retail-store-sample-app.com"
+          git config --global user.name "Industry-Standard CI Bot"
           
           # Check if there are any changes to commit
           if git diff --quiet; then
@@ -85,13 +94,19 @@ jobs:
           # Add all changed values.yaml files
           git add src/*/chart/values.yaml
           
-          # Create commit message with all updated services
-          COMMIT_MSG="Update all service images to $IMAGE_TAG"
+          # Create commit message with industry-standard information
+          COMMIT_MSG="chore: update all service images to ${COMBINED_TAG}
+          
+          Industry-standard container tagging applied:
+          - Combined tag: ${COMBINED_TAG}
+          - Git Commit: ${{ steps.tag.outputs.git-commit }}
+          - Git Branch: ${{ steps.tag.outputs.git-branch }}
+          - Production Ready: Immutable reference"
           
           # Commit changes
-          git commit -m "$COMMIT_MSG"
+          git commit -m "${COMMIT_MSG}"
           
           # Push changes
           git push origin main
           
-          echo "Successfully updated all service images to $IMAGE_TAG" 
+          echo "✅ Successfully updated all service images to industry-standard tag: ${COMBINED_TAG}" 

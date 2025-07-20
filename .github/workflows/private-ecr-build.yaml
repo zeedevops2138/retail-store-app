@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write
 
+env:
+  AWS_REGION: eu-west-1
+  AWS_ACCOUNT_ID: 565393041505
+
 jobs:
   setup-ecr:
     name: Setup ECR Repositories
@@ -100,44 +104,88 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod a+x /usr/local/bin/yq
 
-      - name: Build and push Docker image
+      - name: Generate build metadata
+        id: metadata
+        run: |
+          # Industry-standard build metadata
+          GIT_COMMIT=$(echo ${{ github.sha }} | cut -c1-7)
+          GIT_BRANCH=${{ github.ref_name }}
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          BUILD_ID=${{ github.run_number }}
+          VERSION="1.0.0"
+          
+          # Combined tag for uniqueness (recommended for production)
+          COMBINED_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
+          
+          echo "git-commit=${GIT_COMMIT}" >> $GITHUB_OUTPUT
+          echo "git-branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
+          echo "build-date=${BUILD_DATE}" >> $GITHUB_OUTPUT
+          echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "combined-tag=${COMBINED_TAG}" >> $GITHUB_OUTPUT
+          
+          echo "📋 Build Metadata:"
+          echo "  Git Commit: ${GIT_COMMIT}"
+          echo "  Git Branch: ${GIT_BRANCH}"
+          echo "  Build Date: ${BUILD_DATE}"
+          echo "  Build ID: ${BUILD_ID}"
+          echo "  Version: ${VERSION}"
+          echo "  Combined Tag: ${COMBINED_TAG}"
+
+      - name: Build and push Docker image with industry-standard tags
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
+          platforms: linux/amd64
+          labels: |
+            org.opencontainers.image.created=${{ steps.metadata.outputs.build-date }}
+            org.opencontainers.image.revision=${{ steps.metadata.outputs.git-commit }}
+            org.opencontainers.image.version=${{ steps.metadata.outputs.version }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=Retail Store ${{ matrix.service }} Service
+            org.opencontainers.image.description=Microservice for retail store ${{ matrix.service }} functionality
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/README.md
+            org.opencontainers.image.vendor=Retail Store Sample App
+            build.id=${{ steps.metadata.outputs.build-id }}
+            build.branch=${{ steps.metadata.outputs.git-branch }}
+            build.workflow=${{ github.workflow }}
           tags: |
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:main-$(echo ${{ github.sha }} | cut -c1-7)
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:v${{ steps.metadata.outputs.version }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:git-${{ steps.metadata.outputs.git-commit }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:build-${{ steps.metadata.outputs.build-id }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.git-branch }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.combined-tag }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Update Helm values with new image tag
+      - name: Update Helm values with industry-standard tag
         if: github.ref == 'refs/heads/main'
         run: |
-          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          COMBINED_TAG="${{ steps.metadata.outputs.combined-tag }}"
           ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
           
-          # Update the values.yaml file using yq for better YAML handling with main- prefix
-          if command -v yq &> /dev/null; then
-            # Use yq if available
-            yq eval ".image.repository = \"$ECR_REPO\"" -i src/${{ matrix.service }}/chart/values.yaml
-            yq eval ".image.tag = \"main-$IMAGE_TAG\"" -i src/${{ matrix.service }}/chart/values.yaml
-          else
-            # Fallback to sed with more specific patterns
-            sed -i "s|repository: \${AWS_ACCOUNT_ID}\.dkr\.ecr\.\${AWS_REGION}\.amazonaws\.com/retail-[a-z]*|repository: $ECR_REPO|" src/${{ matrix.service }}/chart/values.yaml
-            sed -i "s|tag: \".*\"|tag: \"main-$IMAGE_TAG\"|" src/${{ matrix.service }}/chart/values.yaml
-          fi
+          echo "📝 Updating Helm values for ${{ matrix.service }}..."
+          echo "   Repository: ${ECR_REPO}"
+          echo "   Tag: ${COMBINED_TAG}"
           
-          echo "Updated ${{ matrix.service }} image to main-$IMAGE_TAG"
-          echo "ECR Repository: $ECR_REPO"
-          echo "Image Tag: main-$IMAGE_TAG"
+          # Update the values.yaml file using yq
+          yq eval ".image.repository = \"${ECR_REPO}\"" -i src/${{ matrix.service }}/chart/values.yaml
+          yq eval ".image.tag = \"${COMBINED_TAG}\"" -i src/${{ matrix.service }}/chart/values.yaml
+          
+          echo "✅ Updated ${{ matrix.service }} Helm values"
           
           # Create a summary file for manual review
           echo "## ${{ matrix.service }} Image Update" >> image-updates.md
-          echo "- Repository: $ECR_REPO" >> image-updates.md
-          echo "- Tag: main-$IMAGE_TAG" >> image-updates.md
-          echo "- Commit: ${{ github.sha }}" >> image-updates.md
+          echo "- Repository: ${ECR_REPO}" >> image-updates.md
+          echo "- Tag: ${COMBINED_TAG}" >> image-updates.md
+          echo "- Version: v${{ steps.metadata.outputs.version }}" >> image-updates.md
+          echo "- Git Commit: ${{ steps.metadata.outputs.git-commit }}" >> image-updates.md
+          echo "- Build ID: ${{ steps.metadata.outputs.build-id }}" >> image-updates.md
+          echo "- Build Date: ${{ steps.metadata.outputs.build-date }}" >> image-updates.md
           echo "" >> image-updates.md
 
       - name: Upload image updates summary
