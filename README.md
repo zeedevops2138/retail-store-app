@@ -11,7 +11,7 @@
   </div>
 
   <strong>
-  <h2>AWS Containers Retail Sample</h2>
+  <h2>AWS Containers Retail Sample.</h2>
   </strong>
 </div>
 
