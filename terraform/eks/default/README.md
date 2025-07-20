@@ -47,7 +47,7 @@ Your AWS user/role needs permissions for:
 
 ## 🛠️ Deployment Instructions
 
-### Step 1: Initial Infrastructure Deployment
+### Step 1: Initialize Terraform
 
 ```bash
 # Clone the repository
@@ -56,40 +56,47 @@ cd terraform/eks/default
 
 # Initialize Terraform
 terraform init
+```
 
+### Step 2: Initial Infrastructure Deployment
+
+```bash
 # Plan the deployment
 terraform plan
 
 # Apply the infrastructure (this takes 15-20 minutes)
+# Note: This will create VPC, EKS cluster, and bastion host
 terraform apply
 ```
 
-### Step 2: Configure kubectl
+### Step 3: Configure kubectl (CRITICAL STEP)
 
-**IMPORTANT**: You must configure kubectl before ArgoCD can deploy applications:
+**IMPORTANT**: You must configure kubectl immediately after EKS cluster creation:
 
 ```bash
 # Get the kubectl configuration command from Terraform output
 terraform output -raw configure_kubectl
 
-# Example output: aws eks --region us-east-1 update-kubeconfig --name retail-store
+# Example output: aws eks --region eu-west-1 update-kubeconfig --name retail-store
 # Run the command shown in the output
 aws eks --region <your-region> update-kubeconfig --name retail-store
 
-# Verify connection
+# Verify connection works
 kubectl cluster-info
 kubectl get nodes
 ```
 
-### Step 3: Apply Terraform Again (for ArgoCD installation)
+### Step 4: Complete Deployment (ArgoCD and Applications)
 
-After configuring kubectl, apply Terraform again to install ArgoCD:
+After configuring kubectl, apply Terraform again to install ArgoCD and deploy applications:
 
 ```bash
+# This will now work because kubectl is configured
 terraform apply
 ```
 
 This second apply will:
+- Install NGINX Ingress Controller
 - Install ArgoCD using Helm
 - Apply ArgoCD project and application manifests
 - Set up GitOps for automatic deployments
@@ -162,6 +169,42 @@ kubectl port-forward -n retail-store svc/ui 8080:80
 
 ## 📊 Monitoring and Troubleshooting
 
+### Common Terraform Deployment Issues
+
+#### 1. EKS Cluster Data Source Error
+If you see: `Error: reading EKS Cluster (retail-store): couldn't find resource`
+
+**Solution**: This is resolved in the current configuration, but ensure you follow the deployment steps in order:
+```bash
+# 1. Apply infrastructure first
+terraform apply
+# 2. Configure kubectl immediately after cluster creation
+aws eks --region <region> update-kubeconfig --name retail-store
+# 3. Apply again to complete ArgoCD installation
+terraform apply
+```
+
+#### 2. kubectl Configuration Issues
+If ArgoCD installation fails with connection errors:
+
+```bash
+# Verify kubectl is configured correctly
+kubectl cluster-info
+kubectl get nodes
+
+# If not working, reconfigure
+aws eks --region <region> update-kubeconfig --name retail-store
+```
+
+#### 3. Provider Configuration Issues
+If you see Kubernetes/Helm provider errors:
+
+```bash
+# Ensure your kubeconfig is properly set
+export KUBECONFIG=~/.kube/config
+kubectl config current-context
+```
+
 ### Check ArgoCD Application Status
 
 ```bash
@@ -193,6 +236,17 @@ kubectl patch application retail-store-ui -n argocd --type='merge' -p='{"spec":{
 
 # Check sync status
 kubectl get application retail-store-ui -n argocd -o yaml
+```
+
+### NGINX Ingress Controller Issues
+
+```bash
+# Check NGINX Ingress Controller status
+kubectl get pods -n ingress-nginx
+kubectl get svc -n ingress-nginx
+
+# Get LoadBalancer endpoint (may take a few minutes)
+kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 ```
 
 ## 🔧 Configuration Details
