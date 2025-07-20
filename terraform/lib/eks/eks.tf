@@ -46,8 +46,41 @@ module "eks_blueprints_addons" {
   cluster_version   = module.eks_cluster.cluster_version
   oidc_provider_arn = module.eks_cluster.oidc_provider_arn
 
-  enable_aws_load_balancer_controller = true
-  enable_cert_manager                 = true
+  # Enable cert-manager for SSL certificates
+  enable_cert_manager = true
+  
+  # Enable NGINX Ingress Controller
+  enable_ingress_nginx = true
+  ingress_nginx = {
+    most_recent = true
+    namespace   = "ingress-nginx"
+    set = [
+      {
+        name  = "controller.service.type"
+        value = "LoadBalancer"
+      },
+      {
+        name  = "controller.service.externalTrafficPolicy"
+        value = "Local"
+      },
+      {
+        name  = "controller.resources.requests.cpu"
+        value = "100m"
+      },
+      {
+        name  = "controller.resources.requests.memory"
+        value = "128Mi"
+      },
+      {
+        name  = "controller.resources.limits.cpu"
+        value = "200m"
+      },
+      {
+        name  = "controller.resources.limits.memory"
+        value = "256Mi"
+      }
+    ]
+  }
 }
 
 resource "time_sleep" "addons" {

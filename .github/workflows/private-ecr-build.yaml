@@ -128,25 +128,25 @@ jobs:
           IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
           ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
           
-          # Update the values.yaml file using yq for better YAML handling
+          # Update the values.yaml file using yq for better YAML handling with main- prefix
           if command -v yq &> /dev/null; then
             # Use yq if available
             yq eval ".image.repository = \"$ECR_REPO\"" -i src/${{ matrix.service }}/chart/values.yaml
-            yq eval ".image.tag = \"$IMAGE_TAG\"" -i src/${{ matrix.service }}/chart/values.yaml
+            yq eval ".image.tag = \"main-$IMAGE_TAG\"" -i src/${{ matrix.service }}/chart/values.yaml
           else
             # Fallback to sed with more specific patterns
             sed -i "s|repository: \${AWS_ACCOUNT_ID}\.dkr\.ecr\.\${AWS_REGION}\.amazonaws\.com/retail-[a-z]*|repository: $ECR_REPO|" src/${{ matrix.service }}/chart/values.yaml
-            sed -i "s|tag: \".*\"|tag: \"$IMAGE_TAG\"|" src/${{ matrix.service }}/chart/values.yaml
+            sed -i "s|tag: \".*\"|tag: \"main-$IMAGE_TAG\"|" src/${{ matrix.service }}/chart/values.yaml
           fi
           
-          echo "Updated ${{ matrix.service }} image to $IMAGE_TAG"
+          echo "Updated ${{ matrix.service }} image to main-$IMAGE_TAG"
           echo "ECR Repository: $ECR_REPO"
-          echo "Image Tag: $IMAGE_TAG"
+          echo "Image Tag: main-$IMAGE_TAG"
           
           # Create a summary file for manual review
           echo "## ${{ matrix.service }} Image Update" >> image-updates.md
           echo "- Repository: $ECR_REPO" >> image-updates.md
-          echo "- Tag: $IMAGE_TAG" >> image-updates.md
+          echo "- Tag: main-$IMAGE_TAG" >> image-updates.md
           echo "- Commit: ${{ github.sha }}" >> image-updates.md
           echo "" >> image-updates.md
 

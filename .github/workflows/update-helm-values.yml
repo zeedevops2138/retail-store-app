@@ -47,7 +47,7 @@ jobs:
           IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
           SERVICES=("cart" "catalog" "checkout" "orders" "ui")
           
-          echo "Updating all services with image tag: $IMAGE_TAG"
+          echo "Updating all services with image tag: main-$IMAGE_TAG"
           
           for SERVICE in "${SERVICES[@]}"; do
             echo "Processing service: $SERVICE"
@@ -56,9 +56,9 @@ jobs:
             
             echo "ECR Repository: $ECR_REPO"
             
-            # Update the values.yaml file using yq
+            # Update the values.yaml file using yq with main- prefix to match ECR tagging
             yq eval ".image.repository = \"$ECR_REPO\"" -i src/$SERVICE/chart/values.yaml
-            yq eval ".image.tag = \"$IMAGE_TAG\"" -i src/$SERVICE/chart/values.yaml
+            yq eval ".image.tag = \"main-$IMAGE_TAG\"" -i src/$SERVICE/chart/values.yaml
             
             echo "Updated $SERVICE values.yaml"
             

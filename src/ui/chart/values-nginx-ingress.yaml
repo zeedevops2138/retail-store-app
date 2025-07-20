@@ -1,0 +1,51 @@
+# Custom values for UI with NGINX Ingress Controller
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+
+# NGINX Ingress Configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+  hosts: []
+  # Uncomment and set your domain if you have one:
+  # - "your-domain.com"
+  tls: []
+
+# Application configuration
+app:
+  endpoints:
+    catalog: http://catalog:80
+    carts: http://carts:80
+    checkout: http://checkout:80
+    orders: http://orders:80
+
+# Resources
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    cpu: 128m
+    memory: 512Mi
+
+# Metrics
+metrics:
+  enabled: true
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/actuator/prometheus" 
