@@ -1,23 +1,9 @@
 name: Update Helm Values
 
 on:
+  repository_dispatch:
+    types: [helm-values-update]
   workflow_dispatch:
-    inputs:
-      service:
-        description: 'Service to update (cart, catalog, checkout, orders, ui)'
-        required: true
-        type: choice
-        options:
-          - cart
-          - catalog
-          - checkout
-          - orders
-          - ui
-      image_tag:
-        description: 'Image tag to use (default: latest)'
-        required: false
-        type: string
-        default: 'latest'
 
 permissions:
   contents: write
@@ -45,51 +31,67 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod a+x /usr/local/bin/yq
 
-      - name: Update Helm values
+      - name: Determine image tag
+        id: image-tag
         run: |
-          SERVICE="${{ github.event.inputs.service }}"
-          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
-          
-          if [ "$IMAGE_TAG" = "latest" ]; then
-            IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # For manual runs, use latest
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          else
+            # For automated runs, use commit SHA
+            echo "tag=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
           fi
-          
-          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-$SERVICE"
-          
-          echo "Updating $SERVICE with image tag: $IMAGE_TAG"
-          echo "ECR Repository: $ECR_REPO"
-          
-          # Update the values.yaml file using yq
-          yq eval ".image.repository = \"$ECR_REPO\"" -i src/$SERVICE/chart/values.yaml
-          yq eval ".image.tag = \"$IMAGE_TAG\"" -i src/$SERVICE/chart/values.yaml
-          
-          # Show the changes
-          git diff src/$SERVICE/chart/values.yaml
 
-      - name: Commit and push changes
+      - name: Update all Helm values
         run: |
-          SERVICE="${{ github.event.inputs.service }}"
-          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
+          SERVICES=("cart" "catalog" "checkout" "orders" "ui")
           
-          if [ "$IMAGE_TAG" = "latest" ]; then
-            IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          fi
+          echo "Updating all services with image tag: $IMAGE_TAG"
+          
+          for SERVICE in "${SERVICES[@]}"; do
+            echo "Processing service: $SERVICE"
+            
+            ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-$SERVICE"
+            
+            echo "ECR Repository: $ECR_REPO"
+            
+            # Update the values.yaml file using yq
+            yq eval ".image.repository = \"$ECR_REPO\"" -i src/$SERVICE/chart/values.yaml
+            yq eval ".image.tag = \"$IMAGE_TAG\"" -i src/$SERVICE/chart/values.yaml
+            
+            echo "Updated $SERVICE values.yaml"
+            
+            # Show the changes for this service
+            echo "Changes for $SERVICE:"
+            git diff src/$SERVICE/chart/values.yaml || echo "No changes for $SERVICE"
+            echo "---"
+          done
+
+      - name: Commit and push all changes
+        run: |
+          IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
           
           # Configure git
           git config --global user.email "ci@example.com"
           git config --global user.name "CI Bot"
           
           # Check if there are any changes to commit
-          if git diff --quiet src/$SERVICE/chart/values.yaml; then
-            echo "No changes to commit for $SERVICE"
+          if git diff --quiet; then
+            echo "No changes to commit"
             exit 0
           fi
           
-          # Add and commit changes
-          git add src/$SERVICE/chart/values.yaml
-          git commit -m "Update $SERVICE image to $IMAGE_TAG"
+          # Add all changed values.yaml files
+          git add src/*/chart/values.yaml
+          
+          # Create commit message with all updated services
+          COMMIT_MSG="Update all service images to $IMAGE_TAG"
+          
+          # Commit changes
+          git commit -m "$COMMIT_MSG"
           
           # Push changes
           git push origin main
           
-          echo "Successfully updated $SERVICE image to $IMAGE_TAG" 
+          echo "Successfully updated all service images to $IMAGE_TAG" 
