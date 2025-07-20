@@ -1,59 +1,28 @@
-name: E2E Test
+name: E2E Test (ECR Images)
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  workflow_run:
+    workflows: ["Build and Push to Private ECR"]
+    types:
+      - completed
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to use (default: latest commit SHA)'
+        required: false
+        type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  docker-e2e:
-    name: Docker E2E Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and start services
-        env:
-          DB_PASSWORD: test123
-        run: |
-          cd src/app
-          docker compose up --build -d
-          sleep 60
-
-      - name: Run E2E tests
-        run: |
-          # Wait for services to be ready
-          timeout 300 bash -c 'until curl -f http://localhost:8888/health; do sleep 5; done'
-          
-          # Run basic health checks
-          curl -f http://localhost:8888/health || exit 1
-          curl -f http://localhost:8080/actuator/health || exit 1
-          curl -f http://localhost:8081/health || exit 1
-          curl -f http://localhost:8082/health || exit 1
-          curl -f http://localhost:8083/health || exit 1
-
-      - name: Cleanup
-        if: always()
-        run: |
-          cd src/app
-          docker compose down
-
-  kubernetes-e2e:
-    name: Kubernetes E2E Tests
+  e2e-test:
+    name: E2E Test with ECR Images
     runs-on: ubuntu-latest
     environment: retail-shop
-    if: github.ref == 'refs/heads/main'
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -71,14 +40,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          if [ "${{ github.event.inputs.image_tag }}" != "" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Pull ECR images
         run: |
-          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
           ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
           
-          echo "Attempting to pull images with tag: $IMAGE_TAG"
+          echo "Pulling images with tag: $IMAGE_TAG"
           
-          # Try to pull images from ECR with fallback to local build
+          # Pull all service images from ECR
           SERVICES=("cart" "catalog" "checkout" "orders" "ui")
           
           for service in "${SERVICES[@]}"; do
@@ -87,12 +65,15 @@ jobs:
             if docker pull "$ECR_REPO/retail-store-sample-$service:$IMAGE_TAG"; then
               echo "Successfully pulled $service from ECR"
               docker tag "$ECR_REPO/retail-store-sample-$service:$IMAGE_TAG" "retail-store-sample-$service:e2e"
-            elif docker pull "$ECR_REPO/retail-store-sample-$service:latest"; then
-              echo "Successfully pulled $service:latest from ECR"
-              docker tag "$ECR_REPO/retail-store-sample-$service:latest" "retail-store-sample-$service:e2e"
             else
-              echo "ECR image not available for $service, building locally..."
-              docker build -t "retail-store-sample-$service:e2e" "src/$service/"
+              echo "Failed to pull $service from ECR, trying latest..."
+              if docker pull "$ECR_REPO/retail-store-sample-$service:latest"; then
+                echo "Successfully pulled $service:latest from ECR"
+                docker tag "$ECR_REPO/retail-store-sample-$service:latest" "retail-store-sample-$service:e2e"
+              else
+                echo "Failed to pull $service from ECR, exiting..."
+                exit 1
+              fi
             fi
           done
 
@@ -140,4 +121,21 @@ jobs:
           curl -f http://localhost:8888/health || exit 1
           
           # Cleanup port forward
-          pkill -f "kubectl port-forward" 
+          pkill -f "kubectl port-forward"
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## E2E Test Summary" >> test-summary.md
+          echo "- Image Tag: ${{ steps.image-tag.outputs.tag }}" >> test-summary.md
+          echo "- ECR Repository: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> test-summary.md
+          echo "- Test Date: $(date)" >> test-summary.md
+          echo "- Status: ${{ job.status }}" >> test-summary.md
+          echo "" >> test-summary.md
+
+      - name: Upload test summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-summary
+          path: test-summary.md 
