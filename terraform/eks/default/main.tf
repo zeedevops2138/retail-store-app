@@ -41,6 +41,55 @@ module "retail_app_eks" {
   }
 }
 
+# Install EKS addons including NGINX Ingress Controller
+module "eks_blueprints_addons" {
+  source  = "aws-ia/eks-blueprints-addons/aws"
+  version = "~> 1.0"
+
+  cluster_name      = module.retail_app_eks.cluster_name
+  cluster_endpoint  = module.retail_app_eks.cluster_endpoint
+  cluster_version   = module.retail_app_eks.cluster_version
+  oidc_provider_arn = module.retail_app_eks.oidc_provider_arn
+
+  # Enable cert-manager for SSL certificates
+  enable_cert_manager = true
+  
+  # Enable NGINX Ingress Controller
+  enable_ingress_nginx = true
+  ingress_nginx = {
+    most_recent = true
+    namespace   = "ingress-nginx"
+    set = [
+      {
+        name  = "controller.service.type"
+        value = "LoadBalancer"
+      },
+      {
+        name  = "controller.service.externalTrafficPolicy"
+        value = "Local"
+      },
+      {
+        name  = "controller.resources.requests.cpu"
+        value = "100m"
+      },
+      {
+        name  = "controller.resources.requests.memory"
+        value = "128Mi"
+      },
+      {
+        name  = "controller.resources.limits.cpu"
+        value = "200m"
+      },
+      {
+        name  = "controller.resources.limits.memory"
+        value = "256Mi"
+      }
+    ]
+  }
+
+  depends_on = [module.retail_app_eks]
+}
+
 # --- Bastion SSH Key Generation ---
 resource "tls_private_key" "bastion" {
   algorithm = "RSA"
