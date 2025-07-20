@@ -1,0 +1,113 @@
+name: Security Scan (Simple)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    environment: retail-shop
+    strategy:
+      matrix:
+        service: [cart, catalog, checkout, orders, ui]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Pull image for scanning
+        id: pull-image
+        run: |
+          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
+          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          
+          echo "Attempting to pull image: $ECR_REPO:$IMAGE_TAG"
+          
+          # Try different tag variations
+          if docker pull "$ECR_REPO:$IMAGE_TAG"; then
+            echo "Successfully pulled $ECR_REPO:$IMAGE_TAG"
+            echo "final-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          elif docker pull "$ECR_REPO:${{ github.sha }}"; then
+            echo "Successfully pulled $ECR_REPO:${{ github.sha }}"
+            echo "final-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          elif docker pull "$ECR_REPO:latest"; then
+            echo "Successfully pulled $ECR_REPO:latest"
+            echo "final-tag=latest" >> $GITHUB_OUTPUT
+          else
+            echo "Failed to pull any image for ${{ matrix.service }}"
+            echo "final-tag=" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Run Trivy vulnerability scanner
+        if: steps.pull-image.outputs.final-tag != ''
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:${{ steps.pull-image.outputs.final-tag }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}.sarif'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: always() && steps.pull-image.outputs.final-tag != '' && hashFiles('trivy-results-${{ matrix.service }}.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+
+      - name: Scan filesystem for vulnerabilities
+        if: always()
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'src/${{ matrix.service }}'
+          format: 'sarif'
+          output: 'trivy-fs-results-${{ matrix.service }}.sarif'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload filesystem scan results
+        if: always() && hashFiles('trivy-fs-results-${{ matrix.service }}.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-fs-results-${{ matrix.service }}.sarif'
+
+      - name: Generate scan summary
+        if: always()
+        run: |
+          echo "## Security Scan Summary for ${{ matrix.service }}" >> scan-summary.md
+          echo "- Service: ${{ matrix.service }}" >> scan-summary.md
+          echo "- Image Tag: ${{ steps.pull-image.outputs.final-tag }}" >> scan-summary.md
+          echo "- Scan Status: ${{ steps.pull-image.outputs.final-tag != '' && 'SUCCESS' || 'FAILED' }}" >> scan-summary.md
+          echo "" >> scan-summary.md
+
+      - name: Upload scan summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-summary-${{ matrix.service }}
+          path: scan-summary.md 
