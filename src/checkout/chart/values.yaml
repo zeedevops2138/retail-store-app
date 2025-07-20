@@ -6,7 +6,7 @@ replicaCount: 1
 image:
   repository: 565393041505.dkr.ecr.eu-west-1.amazonaws.com/retail-store-sample-checkout
   pullPolicy: IfNotPresent
-  tag: "main-e1a3fa3"
+  tag: "main-badcad8"
 imagePullSecrets:
   - name: regcred
 nameOverride: ''
