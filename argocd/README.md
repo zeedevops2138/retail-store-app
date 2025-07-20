@@ -38,24 +38,26 @@ The applications are deployed in the following order using sync waves:
 Create the following private ECR repositories:
 
 ```bash
-aws ecr create-repository --repository-name retail-cart
-aws ecr create-repository --repository-name retail-catalog
-aws ecr create-repository --repository-name retail-checkout
-aws ecr create-repository --repository-name retail-orders
-aws ecr create-repository --repository-name retail-ui
+aws ecr create-repository --repository-name retail-store-sample-cart
+aws ecr create-repository --repository-name retail-store-sample-catalog
+aws ecr create-repository --repository-name retail-store-sample-checkout
+aws ecr create-repository --repository-name retail-store-sample-orders
+aws ecr create-repository --repository-name retail-store-sample-ui
+aws ecr create-repository --repository-name retail-store-sample-utils
 ```
 
 ## GitHub Secrets
 
 Configure the following secrets in your GitHub repository:
 
-- `AWS_ROLE_ARN`: ARN of the IAM role for GitHub Actions
+- `AWS_ACCESS_KEY_ID`: AWS access key for ECR access
+- `AWS_SECRET_ACCESS_KEY`: AWS secret key for ECR access
 - `AWS_ACCOUNT_ID`: Your AWS account ID
 - `AWS_REGION`: AWS region (e.g., us-east-1)
 
-## IAM Role Policy
+## IAM User Policy
 
-The IAM role used by GitHub Actions should have the following policy:
+The IAM user used by GitHub Actions should have the following policy:
 
 ```json
 {
@@ -71,9 +73,11 @@ The IAM role used by GitHub Actions should have the following policy:
                 "ecr:PutImage",
                 "ecr:InitiateLayerUpload",
                 "ecr:UploadLayerPart",
-                "ecr:CompleteLayerUpload"
+                "ecr:CompleteLayerUpload",
+                "ecr:CreateRepository",
+                "ecr:DescribeRepositories"
             ],
-            "Resource": "arn:aws:ecr:*:*:repository/retail-*"
+            "Resource": "arn:aws:ecr:*:*:repository/retail-store-sample-*"
         },
         {
             "Effect": "Allow",

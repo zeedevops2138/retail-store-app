@@ -95,6 +95,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod a+x /usr/local/bin/yq
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -123,9 +128,16 @@ jobs:
           IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
           ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
           
-          # Update the values.yaml file using sed instead of yq
-          sed -i "s|repository: .*|repository: $ECR_REPO|" src/${{ matrix.service }}/chart/values.yaml
-          sed -i "s|tag: .*|tag: $IMAGE_TAG|" src/${{ matrix.service }}/chart/values.yaml
+          # Update the values.yaml file using yq for better YAML handling
+          if command -v yq &> /dev/null; then
+            # Use yq if available
+            yq eval ".image.repository = \"$ECR_REPO\"" -i src/${{ matrix.service }}/chart/values.yaml
+            yq eval ".image.tag = \"$IMAGE_TAG\"" -i src/${{ matrix.service }}/chart/values.yaml
+          else
+            # Fallback to sed with more specific patterns
+            sed -i "s|repository: \${AWS_ACCOUNT_ID}\.dkr\.ecr\.\${AWS_REGION}\.amazonaws\.com/retail-[a-z]*|repository: $ECR_REPO|" src/${{ matrix.service }}/chart/values.yaml
+            sed -i "s|tag: \".*\"|tag: \"$IMAGE_TAG\"|" src/${{ matrix.service }}/chart/values.yaml
+          fi
           
           # Commit and push the changes
           git config --global user.email "ci@example.com"
