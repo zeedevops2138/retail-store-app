@@ -9,7 +9,12 @@ on:
       - main
   workflow_dispatch:
 
-permissions: {}
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_PREFIX: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+permissions:
+  id-token: write
 
 jobs:
   docker:
@@ -64,7 +69,7 @@ jobs:
       - name: Compose down
         shell: devenv shell bash -- -e {0}
         run: |
-          DB_PASSWORD='test123' yarn nx compose:up
+          DB_PASSWORD='test123' yarn nx compose:down
 
   kubernetes:
     name: Kubernetes E2E Tests
@@ -74,13 +79,23 @@ jobs:
       - name: "Setup Env"
         uses: ./.github/actions/setup-env
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-E2E-Test
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build images
         shell: devenv shell bash -- -e {0}
         run: |
           yarn nx run-many -t build --projects=tag:service --parallel=1
 
           yarn nx run-many -t container --projects=tag:service \
-            --tags public.ecr.aws/aws-containers/retail-store-sample-{projectName}:e2e --parallel=5
+            --tags ${ECR_REPOSITORY_PREFIX}/retail-{projectName}:e2e --parallel=5
 
       - name: Kind cluster
         uses: helm/kind-action@v1.12.0
@@ -92,11 +107,11 @@ jobs:
         env:
           IMAGE_TAG: e2e
         run: |
-          kind load docker-image public.ecr.aws/aws-containers/retail-store-sample-catalog:$IMAGE_TAG
-          kind load docker-image public.ecr.aws/aws-containers/retail-store-sample-cart:$IMAGE_TAG
-          kind load docker-image public.ecr.aws/aws-containers/retail-store-sample-checkout:$IMAGE_TAG
-          kind load docker-image public.ecr.aws/aws-containers/retail-store-sample-orders:$IMAGE_TAG
-          kind load docker-image public.ecr.aws/aws-containers/retail-store-sample-ui:$IMAGE_TAG
+          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-catalog:$IMAGE_TAG
+          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-cart:$IMAGE_TAG
+          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-checkout:$IMAGE_TAG
+          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-orders:$IMAGE_TAG
+          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-ui:$IMAGE_TAG
 
           docker system prune --all --force
 

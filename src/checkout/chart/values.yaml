@@ -5,9 +5,9 @@
 replicaCount: 1
 
 image:
-  repository: public.ecr.aws/aws-containers/retail-store-sample-checkout
+  repository: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-checkout
   pullPolicy: IfNotPresent
-  tag: 
+  tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ''

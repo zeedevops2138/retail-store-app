@@ -47,10 +47,26 @@ resource "tls_private_key" "bastion" {
   rsa_bits  = 4096
 }
 
+# Save private key to file with secure permissions
+resource "local_file" "bastion_private_key" {
+  content         = tls_private_key.bastion.private_key_pem
+  filename        = "${path.module}/keys/bastion_key.pem"
+  file_permission = "0400"
+}
+
+# Save public key to file in OpenSSH format
+resource "local_file" "bastion_public_key" {
+  content         = tls_private_key.bastion.public_key_openssh
+  filename        = "${path.module}/keys/bastion_key.pub"
+  file_permission = "0644"
+}
+
+# Create AWS Key Pair with OpenSSH format
 resource "aws_key_pair" "bastion" {
   key_name   = "${var.environment_name}-bastion-key"
   public_key = tls_private_key.bastion.public_key_openssh
 }
+
 
 # --- Bastion Security Group ---
 resource "aws_security_group" "bastion" {
@@ -89,24 +105,40 @@ locals {
     #!/bin/bash
     set -e
     apt-get update -y
+
     apt-get install -y curl unzip apt-transport-https ca-certificates gnupg lsb-release
+    
     # Install AWS CLI v2
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
     unzip -q /tmp/awscliv2.zip -d /tmp
     /tmp/aws/install
+    
     # Install kubectl (latest stable)
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
     rm kubectl
+    
     # Install eksctl (latest)
     curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
     mv /tmp/eksctl /usr/local/bin
+
+    # Install Helm
+    curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
+    apt-get update -y
+    apt-get install -y helm
+
+    
     # Clean up
     rm -rf /tmp/awscliv2.zip /tmp/aws /tmp/eksctl
+    apt-get autoremove -y
+    apt-get autoclean -y
+    
     # Print versions for verification
     aws --version
     kubectl version --client
     eksctl version
+    helm version
   EOF
 }
 
@@ -122,4 +154,39 @@ resource "aws_instance" "bastion" {
   tags = {
     Name = "${var.environment_name}-bastion"
   }
+}
+
+# --- Security Group Rules for Bastion to EKS Access ---
+
+# Allow bastion access to EKS cluster API
+resource "aws_security_group_rule" "bastion_to_eks_cluster" {
+  description              = "Allow bastion to access EKS cluster API"
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.bastion.id
+  security_group_id        = module.retail_app_eks.cluster_security_group_id
+}
+
+# Allow bastion access to EKS nodes (for debugging and kubectl proxy)
+resource "aws_security_group_rule" "bastion_to_eks_nodes" {
+  description              = "Allow bastion to access EKS nodes"
+  type                     = "ingress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.bastion.id
+  security_group_id        = module.retail_app_eks.node_security_group_id
+}
+
+# Allow bastion access to EKS node kubelet health checks
+resource "aws_security_group_rule" "bastion_to_eks_nodes_health" {
+  description              = "Allow bastion to access EKS node health checks"
+  type                     = "ingress"
+  from_port                = 1025
+  to_port                  = 1025
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.bastion.id
+  security_group_id        = module.retail_app_eks.node_security_group_id
 }

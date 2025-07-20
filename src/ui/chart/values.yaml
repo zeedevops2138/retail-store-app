@@ -5,9 +5,9 @@
 replicaCount: 1
 
 image:
-  repository: public.ecr.aws/aws-containers/retail-store-sample-ui
+  repository: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-ui
   pullPolicy: IfNotPresent
-  tag: 
+  tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -113,14 +113,6 @@ ingress:
   #  - "chart-example.local"
 
 ingresses: []
-  # - name: default
-  #   className: ""
-  #   hosts: []
-  #   annotations: {}
-  #   tls: []
-
-ingresses:
-  []
   # - name: default
   #   className: ""
   #   hosts: []

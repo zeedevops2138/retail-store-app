@@ -1,0 +1,173 @@
+name: Build and Push to Private ECR
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_PREFIX: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  setup-ecr:
+    name: Setup ECR Repositories
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-ECR-Setup
+
+      - name: Create ECR repositories if they don't exist
+        run: |
+          # List of required ECR repositories
+          REPOS=("retail-cart" "retail-catalog" "retail-checkout" "retail-orders" "retail-ui")
+          
+          for repo in "${REPOS[@]}"; do
+            echo "Checking if repository $repo exists..."
+            
+            # Check if repository exists
+            if aws ecr describe-repositories --repository-names "$repo" --region ${{ env.AWS_REGION }} 2>/dev/null; then
+              echo "Repository $repo already exists"
+            else
+              echo "Creating repository $repo..."
+              aws ecr create-repository \
+                --repository-name "$repo" \
+                --region ${{ env.AWS_REGION }} \
+                --image-scanning-configuration scanOnPush=true \
+                --encryption-configuration encryptionType=AES256
+              
+              echo "Repository $repo created successfully"
+            fi
+          done
+
+  build-and-push:
+    name: Build and Push Services
+    runs-on: ubuntu-latest
+    needs: setup-ecr
+    strategy:
+      matrix:
+        service: [cart, catalog, checkout, orders, ui]
+        include:
+          - service: cart
+            dockerfile: src/cart/Dockerfile
+            context: src/cart
+          - service: catalog
+            dockerfile: src/catalog/Dockerfile
+            context: src/catalog
+          - service: checkout
+            dockerfile: src/checkout/Dockerfile
+            context: src/checkout
+          - service: orders
+            dockerfile: src/orders/Dockerfile
+            context: src/orders
+          - service: ui
+            dockerfile: src/ui/Dockerfile
+            context: src/ui
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-ECR-Build
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ECR_REPOSITORY_PREFIX }}/retail-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update Helm values with new image tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          ECR_REPO="${{ env.ECR_REPOSITORY_PREFIX }}/retail-${{ matrix.service }}"
+          
+          # Update the values.yaml file using sed instead of yq
+          sed -i "s|repository: .*|repository: $ECR_REPO|" src/${{ matrix.service }}/chart/values.yaml
+          sed -i "s|tag: .*|tag: $IMAGE_TAG|" src/${{ matrix.service }}/chart/values.yaml
+          
+          # Commit and push the changes
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI Bot"
+          git add src/${{ matrix.service }}/chart/values.yaml
+          git commit -m "Update ${{ matrix.service }} image to $IMAGE_TAG" || echo "No changes to commit"
+          git push
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        service: [cart, catalog, checkout, orders, ui]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REPOSITORY_PREFIX }}/retail-${{ matrix.service }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}.sarif' 

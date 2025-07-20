@@ -31,3 +31,8 @@ devenv.local.nix
 .direnv
 
 .pre-commit-config.yaml
+/terraform/eks/default/keys/*
+/terraform/eks/default/.terraform
+/terraform/eks/default/.terraform.lock.hcl
+/terraform/eks/default/.terraform.tfstate
+/terraform/eks/default/.terraform.tfstate.backup
