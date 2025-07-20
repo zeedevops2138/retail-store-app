@@ -70,6 +70,7 @@ jobs:
   kubernetes:
     name: Kubernetes E2E Tests
     runs-on: ubuntu-latest
+    environment: retail-shop
     steps:
       - uses: actions/checkout@v4
       - name: "Setup Env"
@@ -91,7 +92,7 @@ jobs:
           yarn nx run-many -t build --projects=tag:service --parallel=1
 
           yarn nx run-many -t container --projects=tag:service \
-            --tags ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-{projectName}:e2e --parallel=5
+            --tags ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-{projectName}:e2e --parallel=5
 
       - name: Kind cluster
         uses: helm/kind-action@v1.12.0
@@ -103,11 +104,11 @@ jobs:
         env:
           IMAGE_TAG: e2e
         run: |
-          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-catalog:$IMAGE_TAG
-          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-cart:$IMAGE_TAG
-          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-checkout:$IMAGE_TAG
-          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-orders:$IMAGE_TAG
-          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-ui:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-catalog:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-cart:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-checkout:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-orders:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-ui:$IMAGE_TAG
 
           docker system prune --all --force
 

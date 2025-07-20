@@ -16,6 +16,7 @@ jobs:
   setup-ecr:
     name: Setup ECR Repositories
     runs-on: ubuntu-latest
+    environment: retail-shop
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
@@ -31,7 +32,7 @@ jobs:
       - name: Create ECR repositories if they don't exist
         run: |
           # List of required ECR repositories
-          REPOS=("retail-cart" "retail-catalog" "retail-checkout" "retail-orders" "retail-ui")
+          REPOS=("retail-store-sample-cart" "retail-store-sample-catalog" "retail-store-sample-checkout" "retail-store-sample-orders" "retail-store-sample-ui" "retail-store-sample-utils")
           
           for repo in "${REPOS[@]}"; do
             echo "Checking if repository $repo exists..."
@@ -54,6 +55,7 @@ jobs:
   build-and-push:
     name: Build and Push Services
     runs-on: ubuntu-latest
+    environment: retail-shop
     needs: setup-ecr
     strategy:
       matrix:
@@ -97,7 +99,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-${{ matrix.service }}
+          images: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -119,7 +121,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-${{ matrix.service }}"
+          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
           
           # Update the values.yaml file using sed instead of yq
           sed -i "s|repository: .*|repository: $ECR_REPO|" src/${{ matrix.service }}/chart/values.yaml
@@ -135,6 +137,7 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    environment: retail-shop
     needs: build-and-push
     if: github.ref == 'refs/heads/main'
     strategy:
@@ -158,7 +161,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-${{ matrix.service }}:${{ github.sha }}
+          image-ref: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results-${{ matrix.service }}.sarif'
 
