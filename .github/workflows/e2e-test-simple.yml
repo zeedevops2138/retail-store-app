@@ -1,4 +1,4 @@
-name: E2E Test (Simplified)
+name: E2E Test
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
       - name: Build and start services
         run: |
           cd src/app
-          docker-compose up --build -d
+          docker compose up --build -d
           sleep 60
 
       - name: Run E2E tests
@@ -45,7 +45,7 @@ jobs:
         if: always()
         run: |
           cd src/app
-          docker-compose down
+          docker compose down
 
   kubernetes-e2e:
     name: Kubernetes E2E Tests
