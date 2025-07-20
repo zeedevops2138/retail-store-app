@@ -6,7 +6,7 @@ replicaCount: 1
 image:
   repository: 565393041505.dkr.ecr.eu-west-1.amazonaws.com/retail-store-sample-catalog
   pullPolicy: IfNotPresent
-  tag: "main-6ab13a9"
+  tag: "main-35a3be0"
 imagePullSecrets:
   - name: regcred
 nameOverride: ""
