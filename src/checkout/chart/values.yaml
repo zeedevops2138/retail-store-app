@@ -3,16 +3,13 @@
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
-
 image:
-  repository: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-checkout
+  repository: 565393041505.dkr.ecr.eu-west-1.amazonaws.com/retail-store-sample-checkout
   pullPolicy: IfNotPresent
-  tag: "latest"
-
+  tag: "a285546"
 imagePullSecrets: []
 nameOverride: ''
 fullnameOverride: ''
-
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -21,12 +18,9 @@ serviceAccount:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ''
-
 podAnnotations: {}
-
 podSecurityContext:
   fsGroup: 1000
-
 securityContext:
   capabilities:
     drop:
@@ -34,82 +28,60 @@ securityContext:
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
-
 service:
   type: ClusterIP
   port: 80
-
 resources:
   limits:
     memory: 256Mi
   requests:
     cpu: 128m
     memory: 256Mi
-
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
-
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
-
 topologySpreadConstraints: []
-
 metrics:
   enabled: true
   podAnnotations:
     prometheus.io/scrape: 'true'
     prometheus.io/port: '8080'
     prometheus.io/path: '/metrics'
-
 configMap:
   create: true
   name:
-
 app:
   persistence:
     provider: 'in-memory'
     redis:
       endpoint: ''
-
   endpoints:
     orders: ''
-
 redis:
   create: false
-
   image:
     repository: redis
     pullPolicy: IfNotPresent
     tag: '6.0-alpine'
-
   service:
     type: ClusterIP
     port: 6379
-
   podAnnotations: {}
-
   nodeSelector: {}
-
   tolerations: []
-
   affinity: {}
-
 securityGroups:
   create: false
-
   securityGroupIds: []
-
 opentelemetry:
   enabled: false
   instrumentation: ''
-
 podDisruptionBudget:
   enabled: false
   minAvailable: 2

@@ -3,16 +3,13 @@
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
-
 image:
-  repository: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-ui
+  repository: 565393041505.dkr.ecr.eu-west-1.amazonaws.com/retail-store-sample-ui
   pullPolicy: IfNotPresent
-  tag: "latest"
-
+  tag: "a285546"
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
-
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -21,12 +18,9 @@ serviceAccount:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
-
 podAnnotations: {}
-
 podSecurityContext:
   fsGroup: 1000
-
 securityContext:
   capabilities:
     drop:
@@ -36,53 +30,43 @@ securityContext:
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
-
 service:
   type: ClusterIP
   port: 80
   # annotations: {}
   # loadBalancerClass: ""
   # nodePort: 30000
-
 resources:
   limits:
     memory: 512Mi
   requests:
     cpu: 128m
     memory: 512Mi
-
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 10
   targetCPUUtilizationPercentage: 50
-
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
-
 topologySpreadConstraints: []
-
 metrics:
   enabled: true
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8080"
     prometheus.io/path: "/actuator/prometheus"
-
 configMap:
   create: true
   name: # if blank this will be generated
-
 app:
   # theme: default
   endpoints: {}
-    #catalog: http://catalog:80
-    #carts: http://carts:80
-    #orders: http://orders:80
-    #checkout: http://checkout:80
+  #catalog: http://catalog:80
+  #carts: http://carts:80
+  #orders: http://orders:80
+  #checkout: http://checkout:80
   chat:
     enabled: false
     provider: ""
@@ -96,7 +80,6 @@ app:
     openai:
       baseUrl: ""
       # apiKey: ""
-
 ## Ingress for load balancer
 ingress:
   enabled: false
@@ -111,22 +94,19 @@ ingress:
   #      - chart-example.local
   hosts: []
   #  - "chart-example.local"
-
 ingresses: []
-  # - name: default
-  #   className: ""
-  #   hosts: []
-  #   annotations: {}
-  #   tls: []
+# - name: default
+#   className: ""
+#   hosts: []
+#   annotations: {}
+#   tls: []
 
 istio:
   enabled: false
   hosts: []
-
 opentelemetry:
   enabled: false
   instrumentation: ""
-
 podDisruptionBudget:
   enabled: false
   minAvailable: 2
