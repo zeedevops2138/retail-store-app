@@ -13,7 +13,7 @@ spec:
     path: src/ui/chart
     helm:
       valueFiles:
-        - values-nginx-ingress.yaml
+        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: retail-store
