@@ -4,10 +4,18 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - '.github/workflows/private-ecr-build.yaml'
   pull_request:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - '.github/workflows/private-ecr-build.yaml'
   workflow_dispatch:
+  repository_dispatch:
+    types: [ecr-build-trigger]
 
 permissions:
   contents: write
@@ -112,7 +120,26 @@ jobs:
           GIT_BRANCH=${{ github.ref_name }}
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           BUILD_ID=${{ github.run_number }}
-          VERSION="1.0.0"
+          
+          # Dynamic semantic versioning based on git tags and commits
+          if git describe --tags --exact-match 2>/dev/null; then
+            # If on a tagged commit, use the tag as version
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+          else
+            # Generate semantic version based on latest tag + commits since
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            COMMITS_SINCE=$(git rev-list --count ${LATEST_TAG}..HEAD 2>/dev/null || echo "0")
+            BASE_VERSION=$(echo $LATEST_TAG | sed 's/^v//')
+            
+            if [ "$COMMITS_SINCE" -gt 0 ]; then
+              # Increment patch version and add pre-release identifier
+              IFS='.' read -r major minor patch <<< "$BASE_VERSION"
+              patch=$((patch + 1))
+              VERSION="${major}.${minor}.${patch}-${COMMITS_SINCE}.${GIT_COMMIT}"
+            else
+              VERSION="$BASE_VERSION"
+            fi
+          fi
           
           # Combined tag for uniqueness (recommended for production)
           COMBINED_TAG="${GIT_BRANCH}-${GIT_COMMIT}"

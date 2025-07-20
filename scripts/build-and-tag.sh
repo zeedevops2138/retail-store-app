@@ -30,6 +30,36 @@ echo "Version: ${VERSION}"
 echo "ECR Base URL: ${ECR_BASE_URL}"
 echo "=================================================="
 
+# Function to ensure ECR repository exists
+ensure_ecr_repository() {
+    local service=$1
+    local image_name="retail-store-sample-${service}"
+    
+    echo "🔍 Checking ECR repository for ${service}..."
+    
+    # Check if repository exists
+    if ! aws ecr describe-repositories \
+        --repository-names "${image_name}" \
+        --region "${AWS_REGION}" \
+        --output text >/dev/null 2>&1; then
+        
+        echo "📦 Creating ECR repository: ${image_name}"
+        aws ecr create-repository \
+            --repository-name "${image_name}" \
+            --region "${AWS_REGION}" \
+            --image-scanning-configuration scanOnPush=true \
+            --encryption-configuration encryptionType=AES256 \
+            --tags Key=Project,Value=retail-store-sample \
+                   Key=Service,Value="${service}" \
+                   Key=Environment,Value=production \
+            --output text >/dev/null
+        
+        echo "✅ Created ECR repository: ${image_name}"
+    else
+        echo "✅ ECR repository exists: ${image_name}"
+    fi
+}
+
 # Function to build and tag a single service
 build_and_tag_service() {
     local service=$1
@@ -115,6 +145,15 @@ push_to_ecr() {
     echo "✅ Pushed ${service} to ECR successfully"
 }
 
+# Function to create all ECR repositories at once
+create_all_ecr_repositories() {
+    echo "📦 Ensuring all ECR repositories exist..."
+    for service in "${SERVICES[@]}"; do
+        ensure_ecr_repository "${service}"
+    done
+    echo "✅ All ECR repositories are ready"
+}
+
 # Function to update Helm values
 update_helm_values() {
     local service=$1
@@ -152,6 +191,9 @@ main() {
     # Login to ECR
     echo "🔐 Logging into ECR..."
     aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_BASE_URL}"
+    
+    # Ensure all ECR repositories exist
+    create_all_ecr_repositories
     
     # Build and tag all services
     for service in "${SERVICES[@]}"; do
@@ -216,6 +258,12 @@ show_help() {
     echo "  AWS_REGION      AWS region (default: eu-west-1)"
     echo "  AWS_ACCOUNT_ID  AWS account ID (default: 565393041505)"
     echo "  VERSION         Semantic version (default: 1.0.0)"
+    echo ""
+    echo "Features:"
+    echo "  • Automatically creates ECR repositories if they don't exist"
+    echo "  • Applies industry-standard tagging (semantic, git, build ID, branch)"
+    echo "  • Includes security best practices (image scanning, encryption)"
+    echo "  • Updates Helm values with new image tags"
     echo ""
     echo "Examples:"
     echo "  $0              # Build and tag locally only"

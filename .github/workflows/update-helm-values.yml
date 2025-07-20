@@ -34,9 +34,27 @@ jobs:
       - name: Generate industry-standard tag
         id: tag
         run: |
-          # Industry-standard tagging strategy
+          # Industry-standard tagging strategy with dynamic versioning
           GIT_COMMIT=$(git rev-parse --short HEAD)
           GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Dynamic semantic versioning
+          if git describe --tags --exact-match 2>/dev/null; then
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+          else
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            COMMITS_SINCE=$(git rev-list --count ${LATEST_TAG}..HEAD 2>/dev/null || echo "0")
+            BASE_VERSION=$(echo $LATEST_TAG | sed 's/^v//')
+            
+            if [ "$COMMITS_SINCE" -gt 0 ]; then
+              IFS='.' read -r major minor patch <<< "$BASE_VERSION"
+              patch=$((patch + 1))
+              VERSION="${major}.${minor}.${patch}-${COMMITS_SINCE}.${GIT_COMMIT}"
+            else
+              VERSION="$BASE_VERSION"
+            fi
+          fi
           
           # Use combined tag for production deployments (recommended)
           COMBINED_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
@@ -44,11 +62,15 @@ jobs:
           echo "git-commit=${GIT_COMMIT}" >> $GITHUB_OUTPUT
           echo "git-branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
           echo "combined-tag=${COMBINED_TAG}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "build-date=${BUILD_DATE}" >> $GITHUB_OUTPUT
           
           echo "📋 Generated Tag Information:"
           echo "  Git Commit: ${GIT_COMMIT}"
           echo "  Git Branch: ${GIT_BRANCH}"
           echo "  Combined Tag: ${COMBINED_TAG}"
+          echo "  Version: ${VERSION}"
+          echo "  Build Date: ${BUILD_DATE}"
 
       - name: Update all Helm values with industry-standard tags
         run: |
@@ -98,10 +120,12 @@ jobs:
           COMMIT_MSG="chore: update all service images to ${COMBINED_TAG}
           
           Industry-standard container tagging applied:
+          - Version: v${{ steps.tag.outputs.version }}
           - Combined tag: ${COMBINED_TAG}
           - Git Commit: ${{ steps.tag.outputs.git-commit }}
           - Git Branch: ${{ steps.tag.outputs.git-branch }}
-          - Production Ready: Immutable reference"
+          - Build Date: ${{ steps.tag.outputs.build-date }}
+          - Production Ready: Immutable reference for ArgoCD"
           
           # Commit changes
           git commit -m "${COMMIT_MSG}"
