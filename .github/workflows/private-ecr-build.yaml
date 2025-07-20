@@ -9,10 +9,6 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  AWS_REGION: eu-west-1
-  ECR_REPOSITORY_PREFIX: ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-1.amazonaws.com
-
 permissions:
   contents: write
 
@@ -28,9 +24,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ vars.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Create ECR repositories if they don't exist
         run: |
@@ -41,13 +37,13 @@ jobs:
             echo "Checking if repository $repo exists..."
             
             # Check if repository exists
-            if aws ecr describe-repositories --repository-names "$repo" --region ${{ env.AWS_REGION }} 2>/dev/null; then
+            if aws ecr describe-repositories --repository-names "$repo" --region ${{ secrets.AWS_REGION }} 2>/dev/null; then
               echo "Repository $repo already exists"
             else
               echo "Creating repository $repo..."
               aws ecr create-repository \
                 --repository-name "$repo" \
-                --region ${{ env.AWS_REGION }} \
+                --region ${{ secrets.AWS_REGION }} \
                 --image-scanning-configuration scanOnPush=true \
                 --encryption-configuration encryptionType=AES256
               
@@ -86,9 +82,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ vars.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -101,7 +97,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.ECR_REPOSITORY_PREFIX }}/retail-${{ matrix.service }}
+          images: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-${{ matrix.service }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -123,7 +119,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          ECR_REPO="${{ env.ECR_REPOSITORY_PREFIX }}/retail-${{ matrix.service }}"
+          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-${{ matrix.service }}"
           
           # Update the values.yaml file using sed instead of yq
           sed -i "s|repository: .*|repository: $ECR_REPO|" src/${{ matrix.service }}/chart/values.yaml
@@ -152,9 +148,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ vars.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -162,7 +158,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.ECR_REPOSITORY_PREFIX }}/retail-${{ matrix.service }}:${{ github.sha }}
+          image-ref: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-${{ matrix.service }}:${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results-${{ matrix.service }}.sarif'
 

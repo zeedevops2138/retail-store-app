@@ -9,10 +9,6 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  AWS_REGION: eu-west-1
-  ECR_REPOSITORY_PREFIX: ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-1.amazonaws.com
-
 permissions:
   contents: write
 
@@ -82,9 +78,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ vars.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -95,7 +91,7 @@ jobs:
           yarn nx run-many -t build --projects=tag:service --parallel=1
 
           yarn nx run-many -t container --projects=tag:service \
-            --tags ${ECR_REPOSITORY_PREFIX}/retail-{projectName}:e2e --parallel=5
+            --tags ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-{projectName}:e2e --parallel=5
 
       - name: Kind cluster
         uses: helm/kind-action@v1.12.0
@@ -107,11 +103,11 @@ jobs:
         env:
           IMAGE_TAG: e2e
         run: |
-          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-catalog:$IMAGE_TAG
-          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-cart:$IMAGE_TAG
-          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-checkout:$IMAGE_TAG
-          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-orders:$IMAGE_TAG
-          kind load docker-image ${ECR_REPOSITORY_PREFIX}/retail-ui:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-catalog:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-cart:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-checkout:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-orders:$IMAGE_TAG
+          kind load docker-image ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-ui:$IMAGE_TAG
 
           docker system prune --all --force
 
