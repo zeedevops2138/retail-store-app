@@ -115,51 +115,26 @@ jobs:
       - name: Generate build metadata
         id: metadata
         run: |
-          # Industry-standard build metadata
+          # Simplified build metadata with only branch-commit tag
           GIT_COMMIT=$(echo ${{ github.sha }} | cut -c1-7)
           GIT_BRANCH=${{ github.ref_name }}
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          BUILD_ID=${{ github.run_number }}
           
-          # Dynamic semantic versioning based on git tags and commits
-          if git describe --tags --exact-match 2>/dev/null; then
-            # If on a tagged commit, use the tag as version
-            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
-          else
-            # Generate semantic version based on latest tag + commits since
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-            COMMITS_SINCE=$(git rev-list --count ${LATEST_TAG}..HEAD 2>/dev/null || echo "0")
-            BASE_VERSION=$(echo $LATEST_TAG | sed 's/^v//')
-            
-            if [ "$COMMITS_SINCE" -gt 0 ]; then
-              # Increment patch version and add pre-release identifier
-              IFS='.' read -r major minor patch <<< "$BASE_VERSION"
-              patch=$((patch + 1))
-              VERSION="${major}.${minor}.${patch}-${COMMITS_SINCE}.${GIT_COMMIT}"
-            else
-              VERSION="$BASE_VERSION"
-            fi
-          fi
-          
-          # Combined tag for uniqueness (recommended for production)
-          COMBINED_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
+          # Single tag format: <branch>-<commit_sha>
+          IMAGE_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
           
           echo "git-commit=${GIT_COMMIT}" >> $GITHUB_OUTPUT
           echo "git-branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
           echo "build-date=${BUILD_DATE}" >> $GITHUB_OUTPUT
-          echo "build-id=${BUILD_ID}" >> $GITHUB_OUTPUT
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "combined-tag=${COMBINED_TAG}" >> $GITHUB_OUTPUT
+          echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           
-          echo "📋 Build Metadata:"
+          echo "Build Metadata:"
           echo "  Git Commit: ${GIT_COMMIT}"
           echo "  Git Branch: ${GIT_BRANCH}"
           echo "  Build Date: ${BUILD_DATE}"
-          echo "  Build ID: ${BUILD_ID}"
-          echo "  Version: ${VERSION}"
-          echo "  Combined Tag: ${COMBINED_TAG}"
+          echo "  Image Tag: ${IMAGE_TAG}"
 
-      - name: Build and push Docker image with industry-standard tags
+      - name: Build and push Docker image with branch-commit tag
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
@@ -169,49 +144,39 @@ jobs:
           labels: |
             org.opencontainers.image.created=${{ steps.metadata.outputs.build-date }}
             org.opencontainers.image.revision=${{ steps.metadata.outputs.git-commit }}
-            org.opencontainers.image.version=${{ steps.metadata.outputs.version }}
+            org.opencontainers.image.version=${{ steps.metadata.outputs.image-tag }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.title=Retail Store ${{ matrix.service }} Service
             org.opencontainers.image.description=Microservice for retail store ${{ matrix.service }} functionality
             org.opencontainers.image.url=https://github.com/${{ github.repository }}
             org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/README.md
             org.opencontainers.image.vendor=Retail Store Sample App
-            build.id=${{ steps.metadata.outputs.build-id }}
-            build.branch=${{ steps.metadata.outputs.git-branch }}
-            build.workflow=${{ github.workflow }}
           tags: |
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:v${{ steps.metadata.outputs.version }}
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:git-${{ steps.metadata.outputs.git-commit }}
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:build-${{ steps.metadata.outputs.build-id }}
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.git-branch }}
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.combined-tag }}
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:latest
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.image-tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Update Helm values with industry-standard tag
+      - name: Update Helm values with branch-commit tag
         if: github.ref == 'refs/heads/main'
         run: |
-          COMBINED_TAG="${{ steps.metadata.outputs.combined-tag }}"
+          IMAGE_TAG="${{ steps.metadata.outputs.image-tag }}"
           ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
           
-          echo "📝 Updating Helm values for ${{ matrix.service }}..."
+          echo "Updating Helm values for ${{ matrix.service }}..."
           echo "   Repository: ${ECR_REPO}"
-          echo "   Tag: ${COMBINED_TAG}"
+          echo "   Tag: ${IMAGE_TAG}"
           
           # Update the values.yaml file using yq
           yq eval ".image.repository = \"${ECR_REPO}\"" -i src/${{ matrix.service }}/chart/values.yaml
-          yq eval ".image.tag = \"${COMBINED_TAG}\"" -i src/${{ matrix.service }}/chart/values.yaml
+          yq eval ".image.tag = \"${IMAGE_TAG}\"" -i src/${{ matrix.service }}/chart/values.yaml
           
-          echo "✅ Updated ${{ matrix.service }} Helm values"
+          echo "Updated ${{ matrix.service }} Helm values"
           
           # Create a summary file for manual review
           echo "## ${{ matrix.service }} Image Update" >> image-updates.md
           echo "- Repository: ${ECR_REPO}" >> image-updates.md
-          echo "- Tag: ${COMBINED_TAG}" >> image-updates.md
-          echo "- Version: v${{ steps.metadata.outputs.version }}" >> image-updates.md
+          echo "- Tag: ${IMAGE_TAG}" >> image-updates.md
           echo "- Git Commit: ${{ steps.metadata.outputs.git-commit }}" >> image-updates.md
-          echo "- Build ID: ${{ steps.metadata.outputs.build-id }}" >> image-updates.md
           echo "- Build Date: ${{ steps.metadata.outputs.build-date }}" >> image-updates.md
           echo "" >> image-updates.md
 

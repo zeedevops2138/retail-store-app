@@ -21,6 +21,7 @@ jobs:
       new-release-published: ${{ steps.semantic.outputs.new-release-published }}
       new-release-version: ${{ steps.semantic.outputs.new-release-version }}
       new-release-git-tag: ${{ steps.semantic.outputs.new-release-git-tag }}
+      branch-commit-tag: ${{ steps.generate-tag.outputs.tag }}
     
     steps:
       - name: Checkout code
@@ -28,6 +29,23 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate branch-commit tag
+        id: generate-tag
+        run: |
+          # Simple branch-commit tagging
+          GIT_COMMIT=$(git rev-parse --short HEAD)
+          GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          TAG="${GIT_BRANCH}-${GIT_COMMIT}"
+          
+          echo "git-commit=${GIT_COMMIT}" >> $GITHUB_OUTPUT
+          echo "git-branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          
+          echo "📋 Generated Tag Information:"
+          echo "  Git Commit: ${GIT_COMMIT}"
+          echo "  Git Branch: ${GIT_BRANCH}"
+          echo "  Tag: ${TAG}"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,7 +64,6 @@ jobs:
             "plugins": [
               "@semantic-release/commit-analyzer",
               "@semantic-release/release-notes-generator",
-              "@semantic-release/changelog",
               [
                 "@semantic-release/git",
                 {
@@ -72,14 +89,15 @@ jobs:
           echo "## 🚀 New Release Created" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.semantic.outputs.new-release-version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Git Tag**: ${{ steps.semantic.outputs.new-release-git-tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch-Commit Tag**: ${{ steps.generate-tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: ${GITHUB_SHA:0:7}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: ${GITHUB_REF_NAME}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
-          echo "1. 🏗️ Docker images will be built with this version" >> $GITHUB_STEP_SUMMARY
-          echo "2. 📦 Images will be pushed to ECR" >> $GITHUB_STEP_SUMMARY
-          echo "3. 📝 Helm values will be updated" >> $GITHUB_STEP_SUMMARY
-          echo "4. 🚀 ArgoCD will deploy the new version" >> $GITHUB_STEP_SUMMARY
+          echo "1. Docker images will be built with tag: ${{ steps.generate-tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "2. Images will be pushed to ECR" >> $GITHUB_STEP_SUMMARY
+          echo "3. Helm values will be updated" >> $GITHUB_STEP_SUMMARY
+          echo "4. ArgoCD will deploy the new version" >> $GITHUB_STEP_SUMMARY
 
   trigger-build:
     name: Trigger Build Pipeline
@@ -96,4 +114,5 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/private-ecr-build.yaml/dispatches" \
             -d '{"ref":"main"}'
           
-          echo "✅ ECR build workflow triggered successfully" 
+          echo "✅ ECR build workflow triggered successfully"
+          echo "Using tag: ${{ needs.semantic-release.outputs.branch-commit-tag }}" 

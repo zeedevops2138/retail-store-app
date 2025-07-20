@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # Needed for git operations
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -31,81 +32,87 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod a+x /usr/local/bin/yq
 
-      - name: Generate industry-standard tag
+      - name: branch-commit tag
         id: tag
         run: |
-          # Industry-standard tagging strategy with dynamic versioning
+          # Simple branch-commit tagging strategy
           GIT_COMMIT=$(git rev-parse --short HEAD)
           GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           
-          # Dynamic semantic versioning
-          if git describe --tags --exact-match 2>/dev/null; then
-            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
-          else
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-            COMMITS_SINCE=$(git rev-list --count ${LATEST_TAG}..HEAD 2>/dev/null || echo "0")
-            BASE_VERSION=$(echo $LATEST_TAG | sed 's/^v//')
-            
-            if [ "$COMMITS_SINCE" -gt 0 ]; then
-              IFS='.' read -r major minor patch <<< "$BASE_VERSION"
-              patch=$((patch + 1))
-              VERSION="${major}.${minor}.${patch}-${COMMITS_SINCE}.${GIT_COMMIT}"
-            else
-              VERSION="$BASE_VERSION"
-            fi
-          fi
-          
-          # Use combined tag for production deployments (recommended)
-          COMBINED_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
+          # Create branch-commit tag (format: <branch>-<commit_sha>)
+          TAG="${GIT_BRANCH}-${GIT_COMMIT}"
           
           echo "git-commit=${GIT_COMMIT}" >> $GITHUB_OUTPUT
           echo "git-branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
-          echo "combined-tag=${COMBINED_TAG}" >> $GITHUB_OUTPUT
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "build-date=${BUILD_DATE}" >> $GITHUB_OUTPUT
           
-          echo "📋 Generated Tag Information:"
+          echo "Tag Information:"
           echo "  Git Commit: ${GIT_COMMIT}"
           echo "  Git Branch: ${GIT_BRANCH}"
-          echo "  Combined Tag: ${COMBINED_TAG}"
-          echo "  Version: ${VERSION}"
+          echo "  Tag: ${TAG}"
           echo "  Build Date: ${BUILD_DATE}"
 
-      - name: Update all Helm values with industry-standard tags
+      - name: Update all Helm values with branch-commit tag
         run: |
-          COMBINED_TAG="${{ steps.tag.outputs.combined-tag }}"
-          SERVICES=("cart" "catalog" "checkout" "orders" "ui")
+          TAG="${{ steps.tag.outputs.tag }}"
+          SERVICES=("cart" "catalog" "checkout" "orders" "ui" "utils")
           
-          echo "🏷️  Updating all services with industry-standard tag: ${COMBINED_TAG}"
+          echo "Updating all services with tag: ${TAG}"
+          echo "AWS Account ID: ${{ secrets.AWS_ACCOUNT_ID }}"
+          echo "AWS Region: ${{ secrets.AWS_REGION }}"
           
           for SERVICE in "${SERVICES[@]}"; do
             echo "Processing service: ${SERVICE}"
             
+            # Construct ECR repository URL
             ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${SERVICE}"
             
-            echo "  Repository: ${ECR_REPO}"
-            echo "  Tag: ${COMBINED_TAG}"
+            echo "Repository: ${ECR_REPO}"
+            echo "Tag: ${TAG}"
             
-            # Update the values.yaml file using yq with industry-standard combined tag
-            yq eval ".image.repository = \"${ECR_REPO}\"" -i src/${SERVICE}/chart/values.yaml
-            yq eval ".image.tag = \"${COMBINED_TAG}\"" -i src/${SERVICE}/chart/values.yaml
+            # Verify values.yaml exists
+            VALUES_FILE="src/${SERVICE}/chart/values.yaml"
+            if [ ! -f "$VALUES_FILE" ]; then
+              echo "Warning: ${VALUES_FILE} not found, skipping..."
+              continue
+            fi
             
-            echo "  ✅ Updated ${SERVICE} values.yaml"
+            # Backup current values
+            cp "$VALUES_FILE" "${VALUES_FILE}.bak"
+            
+            # Update the values.yaml file using yq with branch-commit tag
+            yq eval ".image.repository = \"${ECR_REPO}\"" -i "$VALUES_FILE"
+            yq eval ".image.tag = \"${TAG}\"" -i "$VALUES_FILE"
+            
+            # Set imagePullPolicy to Always for development, can be overridden in values files
+            yq eval ".image.pullPolicy = \"Always\"" -i "$VALUES_FILE"
             
             # Show the changes for this service
-            echo "  📝 Changes for ${SERVICE}:"
-            git diff src/${SERVICE}/chart/values.yaml || echo "  No changes for ${SERVICE}"
-            echo "  ---"
+            echo "Changes for ${SERVICE}:"
+            if ! git diff --no-prefix "$VALUES_FILE"; then
+              echo "No changes for ${SERVICE}"
+              # Restore original file if no changes to avoid empty commits
+              mv "${VALUES_FILE}.bak" "$VALUES_FILE"
+            else
+              echo "Updated ${SERVICE} values.yaml"
+              rm -f "${VALUES_FILE}.bak"
+            fi
           done
 
-      - name: Commit and push all changes
+      - name: Commit and push Helm value updates
+        env:
+          GIT_AUTHOR_NAME: "GitHub Actions"
+          GIT_AUTHOR_EMAIL: "actions@github.com"
+          GIT_COMMITTER_NAME: "GitHub Actions"
+          GIT_COMMITTER_EMAIL: "actions@github.com"
         run: |
-          COMBINED_TAG="${{ steps.tag.outputs.combined-tag }}"
+          TAG="${{ steps.tag.outputs.tag }}"
           
           # Configure git
-          git config --global user.email "ci@retail-store-sample-app.com"
-          git config --global user.name "Industry-Standard CI Bot"
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
           
           # Check if there are any changes to commit
           if git diff --quiet; then
@@ -116,21 +123,39 @@ jobs:
           # Add all changed values.yaml files
           git add src/*/chart/values.yaml
           
-          # Create commit message with industry-standard information
-          COMMIT_MSG="chore: update all service images to ${COMBINED_TAG}
+          # Create commit message
+          COMMIT_MSG="chore: update all service images to ${TAG}"
+          COMMIT_DETAILS="\n\nUpdated container images to use tag: ${TAG}"
+          COMMIT_DETAILS+="\n- Git Commit: ${{ steps.tag.outputs.git-commit }}"
+          COMMIT_DETAILS+="\n- Git Branch: ${{ steps.tag.outputs.git-branch }}"
+          COMMIT_DETAILS+="\n- Build Date: ${{ steps.tag.outputs.build-date }}"
           
-          Industry-standard container tagging applied:
-          - Version: v${{ steps.tag.outputs.version }}
-          - Combined tag: ${COMBINED_TAG}
-          - Git Commit: ${{ steps.tag.outputs.git-commit }}
-          - Git Branch: ${{ steps.tag.outputs.git-branch }}
-          - Build Date: ${{ steps.tag.outputs.build-date }}
-          - Production Ready: Immutable reference for ArgoCD"
+          # Commit changes with a detailed message
+          git commit -m "${COMMIT_MSG}${COMMIT_DETAILS}" \
+                    --author="GitHub Actions <actions@github.com>"
           
-          # Commit changes
-          git commit -m "${COMMIT_MSG}"
-          
-          # Push changes
+          # Push changes to the main branch
+          echo "Pushing changes to main branch..."
           git push origin main
           
-          echo "✅ Successfully updated all service images to industry-standard tag: ${COMBINED_TAG}" 
+          echo "Successfully updated all service images to tag: ${TAG}"
+          
+          # Output the changes for the workflow summary
+          echo "## Helm Values Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Updated all services to use tag: **${TAG}**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Updated Services" >> $GITHUB_STEP_SUMMARY
+          echo "- Cart Service" >> $GITHUB_STEP_SUMMARY
+          echo "- Catalog Service" >> $GITHUB_STEP_SUMMARY
+          echo "- Checkout Service" >> $GITHUB_STEP_SUMMARY
+          echo "- Orders Service" >> $GITHUB_STEP_SUMMARY
+          echo "- UI Service" >> $GITHUB_STEP_SUMMARY
+          echo "- Utils Service" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Commit Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Git Commit**: ${{ steps.tag.outputs.git-commit }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Git Branch**: ${{ steps.tag.outputs.git-branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Date**: ${{ steps.tag.outputs.build-date }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "ArgoCD will automatically detect these changes and deploy the updated images to the cluster." >> $GITHUB_STEP_SUMMARY 
