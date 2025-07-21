@@ -130,11 +130,10 @@ kubectl get nodes
 
 ## Step 3: GitHub Actions
 
-Once the Entire Cluster is created GitHub Actions will be automatically triggered to build and push Docker images to ECR
+Once the Entire Cluster is created use GitHub Actions to automatically build and push Docker images to ECR whenever you do changes to the repo github actions will be automatically triggered. 
 
-Use GitHub Actions to build Docker images and push to ECR
 
-For GitHub Actions Configure secrets so the pipelines can be automatically triggred:
+For GitHub Actions first configure secrets so the pipelines can be automatically triggred:
 
 **Create an IAM User, provide required policies, and Generate Credentails**
 
