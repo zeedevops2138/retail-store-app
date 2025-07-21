@@ -53,6 +53,17 @@ The application has been deliberately over-engineered to generate multiple de-co
 ##  Architecture Diagram for Creating Application
 
 
+## 🧩 Prerequisites
+
+Make sure you have the following tools installed:
+
+- Terraform v1.3+
+- AWS CLI configured (`aws configure`)
+- `kubectl` and `eksctl`
+- Docker
+- Git
+
+
 ### Resources Created using Terraform
 
 A fully automated, production-ready infrastructure and deployment pipeline for a microservices-based Application using:
