@@ -85,6 +85,48 @@ module "eks_blueprints_addons" {
         value = "256Mi"
       }
     ]
+    set_sensitive = [
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-scheme"
+        value = "internet-facing"
+      },
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
+        value = "nlb"
+      },
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-nlb-target-type"
+        value = "instance"
+      },
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-path"
+        value = "/healthz"
+      },
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-port"
+        value = "10254"
+      },
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-protocol"
+        value = "HTTP"
+      },
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-healthy-threshold"
+        value = "2"
+      },
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-unhealthy-threshold"
+        value = "2"
+      },
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-timeout"
+        value = "5"
+      },
+      {
+        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-interval"
+        value = "30"
+      }
+    ]
   }
 
   depends_on = [module.retail_app_eks]
@@ -238,4 +280,26 @@ resource "aws_security_group_rule" "bastion_to_eks_nodes_health" {
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.bastion.id
   security_group_id        = module.retail_app_eks.node_security_group_id
+}
+
+# Allow internet traffic to LoadBalancer
+resource "aws_security_group_rule" "internet_to_lb" {
+  description       = "Allow internet traffic to LoadBalancer"
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = module.retail_app_eks.cluster_security_group_id
+}
+
+# Allow LoadBalancer health checks from AWS
+resource "aws_security_group_rule" "aws_health_checks_to_lb" {
+  description       = "Allow AWS health checks to LoadBalancer"
+  type              = "ingress"
+  from_port         = 10254
+  to_port           = 10254
+  protocol          = "tcp"
+  cidr_blocks       = [module.vpc.inner.vpc_cidr_block] 
+  security_group_id = module.retail_app_eks.cluster_security_group_id
 }

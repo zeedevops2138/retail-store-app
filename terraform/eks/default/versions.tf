@@ -36,7 +36,6 @@ terraform {
 provider "aws" {}
 
 # EKS cluster connection for Kubernetes/Helm providers
-# These data sources are conditional to avoid chicken-and-egg problem during initial deployment
 data "aws_eks_cluster" "this" {
   count = length(module.retail_app_eks.cluster_name) > 0 ? 1 : 0
   name  = module.retail_app_eks.cluster_name
@@ -48,15 +47,17 @@ data "aws_eks_cluster_auth" "this" {
 }
 
 # Kubernetes provider configuration
-# Uses kubeconfig-based authentication to avoid dependency issues
 provider "kubernetes" {
-  # Use kubeconfig for authentication - more reliable for initial deployment
-  config_path    = "~/.kube/config"
-  config_context = module.retail_app_eks.cluster_name
+  host                   = module.retail_app_eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.retail_app_eks.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.this[0].token
 }
 
 # Helm provider configuration  
-# Uses kubeconfig for authentication to avoid dependency issues
 provider "helm" {
-  # Use default kubeconfig for authentication - more reliable for initial deployment
+  kubernetes {
+    host                   = module.retail_app_eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.retail_app_eks.cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.this[0].token
+  }
 }
