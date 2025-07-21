@@ -188,6 +188,10 @@ kubectl get svc -n ui
 Trigger fresh build - Mon 21 Jul 2025 00:17:52 IST
 
 ### 🧹 Cleanup To delete the entire Infrastructure created by terraform
+
+Run both the commands 
+
 ```
- terraform destroy -target=module.retail_app_eks --auto-approve
+terraform destroy -target=module.retail_app_eks --auto-approve
+terraform destroy --auto-approve
 ```
