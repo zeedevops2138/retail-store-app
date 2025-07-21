@@ -79,7 +79,6 @@ cd your-repo-name
 ```
 
 
-
 ## Resources Created using Terraform
 
 A fully automated, production-ready infrastructure and deployment pipeline for a microservices-based Application using:
@@ -107,7 +106,6 @@ Run the following commands to create the entire Infrastructure
 terraform init
 terraform apply -target=module.retail_app_eks 
 ```
-<img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/7ab3d94a-6b37-458f-9bb2-163b635bd62b" />
 
 
 ## Step 2: Update kubeconfig to Access the EKS Cluster
