@@ -63,7 +63,7 @@ Make sure you have the following tools installed:
 - Docker
 
 
-## 🔁 Step 0: Fork and Clone the Repository
+## 🔁 Fork or Clone the Repository
 
 ### 🔹 Fork the Repository
 
