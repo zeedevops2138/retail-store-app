@@ -63,6 +63,22 @@ Make sure you have the following tools installed:
 - Docker
 - Git
 
+## 🔁 Step 0: Fork and Clone the Repository
+
+### 🔹 Fork the Repository
+
+1. Go to the original GitHub repository:  
+   `https://github.com/your-org/your-repo-name`
+2. Click the **Fork** button at the top-right corner.
+
+### 🔹 Clone Your Forked Repo
+
+```bash
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name 
+```
+
+
 
 ### Resources Created using Terraform
 
