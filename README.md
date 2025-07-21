@@ -57,7 +57,7 @@ The application has been deliberately over-engineered to generate multiple de-co
 
 Make sure you have the following tools installed:
 
-- Terraform v1.3+
+- Terraform 
 - AWS CLI configured (`aws configure`)
 - `kubectl` and `eksctl`
 - Docker
