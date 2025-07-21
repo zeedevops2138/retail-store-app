@@ -131,6 +131,10 @@ kubectl get nodes
 
 Once the Entire Cluster is created GitHub Actions will be automatically triggered to build and push Docker images to ECR
 
+Use GitHub Actions to build Docker images and push to ECR
+
+For GitHub Actions Configure secrets so the pipelines can be automatically triggred:
+
 **Create an IAM User, provide required policies, and Generate Credentails**
 
 **Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret.**
@@ -146,16 +150,6 @@ Once the Entire Cluster is created GitHub Actions will be automatically triggere
 
 
 
-
-
-
-
-
-Run the following Command to create Repositories in ECR:
-```
-aws ecr create-repository --repository-name <your-repo-name > --region <repo-region>
-```
-<img width="2940" height="1059" alt="image" src="https://github.com/user-attachments/assets/5305275c-b55a-47ae-b8dd-d22fa1d9582e" />
 
 ## Step 4: Argo CD Automated Deployment
 Argo CD (Continuous Integration) Installation
