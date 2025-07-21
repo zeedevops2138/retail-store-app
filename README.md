@@ -118,6 +118,7 @@ aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
 terraform apply --auto-approve
 ```
+It takes approximately 15–20 minutes to create the cluster.
 
 #### Check if the nodes are running
 ```
