@@ -80,7 +80,7 @@ cd your-repo-name
 
 
 
-### Resources Created using Terraform
+## Resources Created using Terraform
 
 A fully automated, production-ready infrastructure and deployment pipeline for a microservices-based Application using:
 
