@@ -69,6 +69,7 @@ Make sure you have the following tools installed:
 
 1. Go to the original GitHub repository:  
    `https://github.com/your-org/your-repo-name`
+   
 2. Click the **Fork** button at the top-right corner.
 
 ### 🔹 Clone Your Forked Repo
