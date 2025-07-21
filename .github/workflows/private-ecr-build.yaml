@@ -137,6 +137,7 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          load: true
           platforms: linux/amd64
           tags: localbuild/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.image-tag }}
           labels: |
@@ -146,6 +147,11 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.title=Retail Store ${{ matrix.service }} Service
             org.opencontainers.image.description=Microservice for retail store ${{ matrix.service }} functionality
+
+      - name: Verify Docker image exists
+        run: |
+          docker images
+          docker inspect localbuild/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.image-tag }}
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@master
