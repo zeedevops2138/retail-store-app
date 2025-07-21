@@ -65,10 +65,14 @@ jobs:
           done
 
   build-and-push:
-    name: Build and Push Services
-    runs-on: ubuntu-latest
-    environment: retail-shop
+    name: Build and push ${{ matrix.service }}
     needs: setup-ecr
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    environment: retail-shop
     strategy:
       matrix:
         service: [cart, catalog, checkout, orders, ui]
@@ -187,6 +191,8 @@ jobs:
         with:
           sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
           category: 'trivy-image-${{ matrix.service }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to Amazon ECR
         if: success()
