@@ -43,45 +43,33 @@ jobs:
       - name: Pull image for scanning
         id: pull-image
         run: |
+          # Get branch name and sanitize it (replace / with -)
+          GIT_BRANCH=${GITHUB_REF_NAME//\//-}
+          # Get short commit SHA
+          GIT_COMMIT=$(echo ${{ github.sha }} | cut -c1-7)
+          # Build the same tag format as private-ecr-build.yaml
+          IMAGE_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
+          
+          # Construct full ECR repository path
           ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
-          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
           
-          echo "Attempting to pull image: $ECR_REPO:$IMAGE_TAG"
+          echo "Pulling image: ${ECR_REPO}:${IMAGE_TAG}"
           
-          # Try different tag variations with retries
-          for attempt in 1 2 3; do
-            echo "Attempt $attempt to pull image..."
-            
-            if docker pull "$ECR_REPO:$IMAGE_TAG"; then
-              echo "Successfully pulled $ECR_REPO:$IMAGE_TAG"
-              echo "final-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-              break
-            elif docker pull "$ECR_REPO:${{ github.sha }}"; then
-              echo "Successfully pulled $ECR_REPO:${{ github.sha }}"
-              echo "final-tag=${{ github.sha }}" >> $GITHUB_OUTPUT
-              break
-            elif docker pull "$ECR_REPO:latest"; then
-              echo "Successfully pulled $ECR_REPO:latest"
-              echo "final-tag=latest" >> $GITHUB_OUTPUT
-              break
-            else
-              echo "Attempt $attempt failed to pull any image for ${{ matrix.service }}"
-              if [ $attempt -lt 3 ]; then
-                echo "Waiting 30 seconds before retry..."
-                sleep 30
-              else
-                echo "All attempts failed. Skipping image scan for ${{ matrix.service }}"
-                echo "final-tag=" >> $GITHUB_OUTPUT
-                # Don't exit 1, just continue without image scanning
-              fi
-            fi
-          done
+          if docker pull "${ECR_REPO}:${IMAGE_TAG}"; then
+            echo "Successfully pulled ${ECR_REPO}:${IMAGE_TAG}"
+            echo "image-uri=${ECR_REPO}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+            echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::Failed to pull image ${ECR_REPO}:${IMAGE_TAG}"
+            echo "image-uri=" >> $GITHUB_OUTPUT
+            echo "image-tag=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run Trivy vulnerability scanner
-        if: steps.pull-image.outputs.final-tag != ''
+        if: steps.pull-image.outputs.image-uri != ''
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:${{ steps.pull-image.outputs.final-tag }}
+          image-ref: ${{ steps.pull-image.outputs.image-uri }}
           format: 'sarif'
           output: 'trivy-results-${{ matrix.service }}.sarif'
           exit-code: '0'
@@ -89,7 +77,7 @@ jobs:
           timeout: '10m'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        if: always() && steps.pull-image.outputs.final-tag != '' && hashFiles('trivy-results-${{ matrix.service }}.sarif') != ''
+        if: always() && steps.pull-image.outputs.image-uri != '' && hashFiles('trivy-results-${{ matrix.service }}.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
@@ -119,9 +107,10 @@ jobs:
         run: |
           echo "## Security Scan Summary for ${{ matrix.service }}" >> scan-summary.md
           echo "- Service: ${{ matrix.service }}" >> scan-summary.md
-          echo "- Image Tag: ${{ steps.pull-image.outputs.final-tag }}" >> scan-summary.md
+          echo "- Image URI: ${{ steps.pull-image.outputs.image-uri }}" >> scan-summary.md
+          echo "- Image Tag: ${{ steps.pull-image.outputs.image-tag }}" >> scan-summary.md
           
-          if [ "${{ steps.pull-image.outputs.final-tag }}" != "" ]; then
+          if [ "${{ steps.pull-image.outputs.image-uri }}" != "" ]; then
             echo "- Image Scan Status: SUCCESS" >> scan-summary.md
           else
             echo "- Image Scan Status: SKIPPED (image not available)" >> scan-summary.md
@@ -136,4 +125,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: security-scan-summary-${{ matrix.service }}
-          path: scan-summary.md 
+          path: scan-summary.md
