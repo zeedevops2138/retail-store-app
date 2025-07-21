@@ -127,7 +127,8 @@ kubectl get nodes
 <img width="1097" height="73" alt="image" src="https://github.com/user-attachments/assets/00c851d0-91a9-4e5e-a1c6-e8aac12a381e" />
 
 
-## Step 3: Once the Entire Cluster is created GitHub Actions will be automatically triggered
+## Step 3: GitHub Actions
+Once the Entire Cluster is created GitHub Actions will be automatically triggered
 
 
 
