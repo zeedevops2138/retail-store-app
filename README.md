@@ -102,7 +102,7 @@ The following sections provide quickstart instructions for various platforms.
 
 Run the following commands to create the entire Infrastructure
 
-#### In 1st Phase:  Terraform Initializes and Creates the resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles).
+##### In 1st Phase:  Terraform Initializes and Creates the resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles).
 ```
 terraform init
 terraform apply -target=module.retail_app_eks 
@@ -114,7 +114,7 @@ terraform apply -target=module.retail_app_eks
 aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
 
-#### In 2nd Phase: Apply Remaining Configuration this will create (Kubernetes-related resources, Argo CD setup, Monitoring resources)
+##### In 2nd Phase: Apply Remaining Configuration this will create (Kubernetes-related resources, Argo CD setup, Monitoring resources)
 ```
 terraform apply --auto-approve
 ```
@@ -123,6 +123,7 @@ terraform apply --auto-approve
 ```
 kubectl get nodes
 ```
+
 <img width="1097" height="73" alt="image" src="https://github.com/user-attachments/assets/00c851d0-91a9-4e5e-a1c6-e8aac12a381e" />
 
 
