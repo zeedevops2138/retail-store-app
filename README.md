@@ -179,16 +179,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 ```
 kubectl get pods
 ```
-## Test Internal Service Communication 
-```
-kubectl exec -it deploy/ui -- sh
-```
-```
-curl http://carts/health
-curl http://catalog/health
-curl http://checkout/health
-curl http://orders/health
-```
+
 ## Verify Services 
 ```
 kubectl get svc -n ui
@@ -196,3 +187,7 @@ kubectl get svc -n ui
 <img width="2909" height="1764" alt="image" src="https://github.com/user-attachments/assets/cffbeda3-b212-481a-bc80-626547dd98b4" />
 Trigger fresh build - Mon 21 Jul 2025 00:17:52 IST
 
+To Delete the entire infrastructure after 
+```
+ terraform destroy -target=module.retail_app_eks --auto-approve
+```
