@@ -152,15 +152,24 @@ For GitHub Actions first configure secrets so the pipelines can be automatically
 
 
 ## Step 4: Argo CD Automated Deployment
+
 Argo CD (Continuous Integration) Installation
+
 ```
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
 Port-forward to Argo CD UI and login
+
 ```
 kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+Default Argo CD Admin Password (after initial installation):
+
+```
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
 
 <img width="2911" height="1595" alt="image" src="https://github.com/user-attachments/assets/a0a4c296-580f-431b-8b9f-0e268c8c27f5" />
