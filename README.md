@@ -82,7 +82,7 @@ terraform apply -target=module.retail_app_eks
 <img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/7ab3d94a-6b37-458f-9bb2-163b635bd62b" />
 
 
-### Step 2: Update kubeconfig to Access the EKS Cluster
+## Step 2: Update kubeconfig to Access the EKS Cluster
 ```
 aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
