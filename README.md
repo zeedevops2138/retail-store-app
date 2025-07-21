@@ -146,7 +146,7 @@ For GitHub Actions Configure secrets so the pipelines can be automatically trigg
 | `AWS_REGION`          | `region-name`                       |
 | `ECR_REGISTRY`        | `your-account-id.dkr.ecr.ap-south-1.amazonaws.com` |
 
-
+ 
 
 
 
