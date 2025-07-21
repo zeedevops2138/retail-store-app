@@ -87,7 +87,7 @@ terraform apply -target=module.retail_app_eks
 aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
 
-### In 2nd Phase: Apply Remaining Configuration this will create (Kubernetes-related resources, Argo CD setup, Monitoring resources)
+#### In 2nd Phase: Apply Remaining Configuration this will create (Kubernetes-related resources, Argo CD setup, Monitoring resources)
 ```
 terraform apply --auto-approve
 ```
