@@ -77,7 +77,7 @@ Run the following commands to create the entire Infrastructure
 #### In 1st Phase:  Terraform Initializes and Creates the resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles).
 ```
 terraform init
-terraform apply -target=module.retail_app_eks
+terraform apply -target=module.retail_app_eks 
 ```
 <img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/7ab3d94a-6b37-458f-9bb2-163b635bd62b" />
 
