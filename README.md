@@ -70,23 +70,47 @@ A fully automated, production-ready infrastructure and deployment pipeline for a
 The following sections provide quickstart instructions for various platforms.
 
 
-### Step 1: Terraform
+## Step 1: Terraform
 
-Run the following to create the entire Infrastructure
+Run the following commands to create the entire Infrastructure
 
+#### In 1st Phase:  Terraform Initializes and Creates the resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles).
 ```
 terraform init
-terraform plan
+terraform apply -target=module.retail_app_eks
+```
+<img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/7ab3d94a-6b37-458f-9bb2-163b635bd62b" />
+
+
+### Step 2: Update kubeconfig to Access the EKS Cluster
+```
+aws eks update-kubeconfig --name retail-store --region ap-south-1
+```
+
+### In 2nd Phase: Apply Remaining Configuration this will create (Kubernetes-related resources, Argo CD setup, Monitoring resources)
+```
 terraform apply --auto-approve
 ```
 
-Configure kubectl to Access EKS
+### Check if the nodes are running
 ```
-aws eks update-kubeconfig --name <your-eks-cluster-name>
-kubectl get nodes 
+kubectl get nodes
 ```
+<img width="1097" height="73" alt="image" src="https://github.com/user-attachments/assets/00c851d0-91a9-4e5e-a1c6-e8aac12a381e" />
 
-## Step 2: ECR-Repository Creation
+
+## Step 3: Once the Entire Cluster is created GitHub Actions will be automatically triggered
+
+
+
+
+
+
+
+
+
+
+
 Run the following Command to create Repositories in ECR:
 ```
 aws ecr create-repository --repository-name <your-repo-name > --region <repo-region>
@@ -142,3 +166,4 @@ kubectl get svc -n ui
 ```
 <img width="2909" height="1764" alt="image" src="https://github.com/user-attachments/assets/cffbeda3-b212-481a-bc80-626547dd98b4" />
 Trigger fresh build - Mon 21 Jul 2025 00:17:52 IST
+
