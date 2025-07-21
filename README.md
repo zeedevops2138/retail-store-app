@@ -189,7 +189,7 @@ Trigger fresh build - Mon 21 Jul 2025 00:17:52 IST
 
 ### 🧹 Cleanup To delete the entire Infrastructure created by terraform
 
-Run both the commands 
+Run both the commands and wait for 5-10 minutes the resources will be deleted.
 
 ```
 terraform destroy -target=module.retail_app_eks --auto-approve
