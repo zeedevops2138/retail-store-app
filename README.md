@@ -119,7 +119,7 @@ aws eks update-kubeconfig --name retail-store --region ap-south-1
 terraform apply --auto-approve
 ```
 
-### Check if the nodes are running
+#### Check if the nodes are running
 ```
 kubectl get nodes
 ```
