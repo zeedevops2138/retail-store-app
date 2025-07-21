@@ -195,3 +195,5 @@ Run both the commands and wait for 10-15 minutes all the resources created with 
 terraform destroy -target=module.retail_app_eks --auto-approve
 terraform destroy --auto-approve
 ```
+<img width="1339" height="509" alt="image" src="https://github.com/user-attachments/assets/85d80080-b4a9-4355-a618-9a59057e8e71" />
+
