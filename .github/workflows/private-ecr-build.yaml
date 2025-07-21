@@ -118,6 +118,8 @@ jobs:
           # Simplified build metadata with only branch-commit tag
           GIT_COMMIT=$(echo ${{ github.sha }} | cut -c1-7)
           GIT_BRANCH=${{ github.ref_name }}
+          # Replace / with - in branch names
+          GIT_BRANCH=${GIT_BRANCH//\//-}
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           
           # Single tag format: <branch>-<commit_sha>
@@ -127,20 +129,16 @@ jobs:
           echo "git-branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
           echo "build-date=${BUILD_DATE}" >> $GITHUB_OUTPUT
           echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-          
-          echo "Build Metadata:"
-          echo "  Git Commit: ${GIT_COMMIT}"
-          echo "  Git Branch: ${GIT_BRANCH}"
-          echo "  Build Date: ${BUILD_DATE}"
-          echo "  Image Tag: ${IMAGE_TAG}"
 
-      - name: Build and push Docker image with branch-commit tag
+      - name: Build Docker image
+        id: build-image
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
-          push: true
+          push: false
           platforms: linux/amd64
+          tags: localbuild/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.image-tag }}
           labels: |
             org.opencontainers.image.created=${{ steps.metadata.outputs.build-date }}
             org.opencontainers.image.revision=${{ steps.metadata.outputs.git-commit }}
@@ -148,16 +146,44 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.title=Retail Store ${{ matrix.service }} Service
             org.opencontainers.image.description=Microservice for retail store ${{ matrix.service }} functionality
-            org.opencontainers.image.url=https://github.com/${{ github.repository }}
-            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/README.md
-            org.opencontainers.image.vendor=Retail Store Sample App
-          tags: |
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.image-tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: localbuild/retail-store-sample-${{ matrix.service }}:${{ steps.metadata.outputs.image-tag }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}.sarif'
+          exit-code: '1'  # Fail on critical vulnerabilities
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+          category: 'trivy-image-${{ matrix.service }}'
+
+      - name: Login to Amazon ECR
+        if: success()
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag and push to ECR
+        if: success()
+        run: |
+          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
+          IMAGE_TAG="${{ steps.metadata.outputs.image-tag }}"
+          
+          # Tag the local image with ECR repository
+          docker tag localbuild/retail-store-sample-${{ matrix.service }}:${IMAGE_TAG} ${ECR_REPO}:${IMAGE_TAG}
+          
+          # Push to ECR
+          docker push ${ECR_REPO}:${IMAGE_TAG}
+          
+          echo "Pushed ${ECR_REPO}:${IMAGE_TAG} to ECR"
 
       - name: Update Helm values with branch-commit tag
-        if: github.ref == 'refs/heads/main'
+        if: success() && github.ref == 'refs/heads/main'
         run: |
           IMAGE_TAG="${{ steps.metadata.outputs.image-tag }}"
           ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
@@ -181,7 +207,7 @@ jobs:
           echo "" >> image-updates.md
 
       - name: Upload image updates summary
-        if: github.ref == 'refs/heads/main'
+        if: success() && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: image-updates-${{ matrix.service }}
@@ -203,5 +229,3 @@ jobs:
         
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
- 

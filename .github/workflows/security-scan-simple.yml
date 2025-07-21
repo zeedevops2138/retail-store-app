@@ -1,21 +1,24 @@
 name: Security Scan (Simple)
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  schedule:
+    # Run daily at midnight UTC
+    - cron: '0 0 * * *'
   workflow_dispatch:
+    # Allow manual triggering
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual trigger'
 
 permissions:
   contents: read
   security-events: write
 
 jobs:
-  security-scan:
-    name: Security Scan
+  filesystem-scan:
+    name: Filesystem Security Scan
     runs-on: ubuntu-latest
     environment: retail-shop
     timeout-minutes: 20
@@ -27,77 +30,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Pull image for scanning
-        id: pull-image
-        run: |
-          # Get branch name and sanitize it (replace / with -)
-          GIT_BRANCH=${GITHUB_REF_NAME//\//-}
-          # Get short commit SHA
-          GIT_COMMIT=$(echo ${{ github.sha }} | cut -c1-7)
-          # Build the same tag format as private-ecr-build.yaml
-          IMAGE_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
-          
-          # Construct full ECR repository path
-          ECR_REPO="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/retail-store-sample-${{ matrix.service }}"
-          
-          echo "Pulling image: ${ECR_REPO}:${IMAGE_TAG}"
-          
-          if docker pull "${ECR_REPO}:${IMAGE_TAG}"; then
-            echo "Successfully pulled ${ECR_REPO}:${IMAGE_TAG}"
-            echo "image-uri=${ECR_REPO}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
-            echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-          else
-            echo "::warning::Failed to pull image ${ECR_REPO}:${IMAGE_TAG}"
-            echo "image-uri=" >> $GITHUB_OUTPUT
-            echo "image-tag=" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Run Trivy vulnerability scanner
-        if: steps.pull-image.outputs.image-uri != ''
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ steps.pull-image.outputs.image-uri }}
-          format: 'sarif'
-          output: 'trivy-results-${{ matrix.service }}.sarif'
-          exit-code: '0'
-          severity: 'CRITICAL,HIGH'
-          timeout: '10m'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        if: always() && steps.pull-image.outputs.image-uri != '' && hashFiles('trivy-results-${{ matrix.service }}.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
-          category: 'trivy-image-${{ matrix.service }}'
-
-      - name: Scan filesystem for vulnerabilities
-        if: always()
+      - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: 'src/${{ matrix.service }}'
           format: 'sarif'
           output: 'trivy-fs-results-${{ matrix.service }}.sarif'
-          exit-code: '0'
+          exit-code: '0'  # Don't fail the build, just report
           severity: 'CRITICAL,HIGH'
-          timeout: '5m'
+          ignore-unfixed: true
+          skip-dirs: '**/node_modules/**,**/vendor/**'
 
       - name: Upload filesystem scan results
-        if: always() && hashFiles('trivy-fs-results-${{ matrix.service }}.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
           sarif_file: 'trivy-fs-results-${{ matrix.service }}.sarif'
           category: 'trivy-fs-${{ matrix.service }}'
@@ -107,17 +54,15 @@ jobs:
         run: |
           echo "## Security Scan Summary for ${{ matrix.service }}" >> scan-summary.md
           echo "- Service: ${{ matrix.service }}" >> scan-summary.md
-          echo "- Image URI: ${{ steps.pull-image.outputs.image-uri }}" >> scan-summary.md
-          echo "- Image Tag: ${{ steps.pull-image.outputs.image-tag }}" >> scan-summary.md
+          echo "- Scan Type: Filesystem" >> scan-summary.md
+          echo "- Scan Date: $(date)" >> scan-summary.md
           
-          if [ "${{ steps.pull-image.outputs.image-uri }}" != "" ]; then
-            echo "- Image Scan Status: SUCCESS" >> scan-summary.md
+          if [ -f "trivy-fs-results-${{ matrix.service }}.sarif" ]; then
+            echo "- Filesystem Scan Status: COMPLETED" >> scan-summary.md
           else
-            echo "- Image Scan Status: SKIPPED (image not available)" >> scan-summary.md
+            echo "- Filesystem Scan Status: FAILED" >> scan-summary.md
           fi
           
-          echo "- Filesystem Scan Status: COMPLETED" >> scan-summary.md
-          echo "- Scan Date: $(date)" >> scan-summary.md
           echo "" >> scan-summary.md
 
       - name: Upload scan summary
