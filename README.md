@@ -110,7 +110,6 @@ kubectl get nodes
 
 
 
-
 Run the following Command to create Repositories in ECR:
 ```
 aws ecr create-repository --repository-name <your-repo-name > --region <repo-region>
