@@ -61,7 +61,7 @@ Make sure you have the following tools installed:
 - AWS CLI configured (`aws configure`)
 - `kubectl` and `eksctl`
 - Docker
-- Git
+
 
 ## 🔁 Step 0: Fork and Clone the Repository
 
