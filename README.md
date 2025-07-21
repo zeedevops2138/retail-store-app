@@ -172,7 +172,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
 
-<img width="2911" height="1595" alt="image" src="https://github.com/user-attachments/assets/a0a4c296-580f-431b-8b9f-0e268c8c27f5" />
+<img width="2909" height="1590" alt="image" src="https://github.com/user-attachments/assets/2cd76cea-da96-49ec-95e7-964babc2f313" />
 
 
 ## Verify Kubernetes Pods
