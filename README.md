@@ -157,20 +157,23 @@ GitHub Actions will automatically build and push the updated Docker images to Am
 <img width="2868" height="1130" alt="image" src="https://github.com/user-attachments/assets/f29c3416-d630-4463-81d2-aaa8af9a02da" />
 
 
-
-### 5. Verify Deployment
+### Verify Deployment
 
 Check if the nodes are running:
 
 ```bash
 kubectl get nodes
 ```
-##### OR 
 
-### Step 6: Verify the status of Argo CD pods
+
+### Step 6: Argo CD Automated Deployment
+
+**Verify the status of Argo CD pods**
+
 ```
 kubectl get pods -n argocd
 ```
+##### OR 
 
 ### Step 7: Check the status of all the pods:
 
@@ -190,6 +193,9 @@ kubectl get svc -n ingress-nginx
 ```
 
 Use the EXTERNAL-IP of the ingress-nginx-controller service to access the application.
+
+<img width="2899" height="1760" alt="image" src="https://github.com/user-attachments/assets/9eafce60-773e-41ad-9ece-be7c8384a811" />
+
 
 ## GitOps Workflow
 
