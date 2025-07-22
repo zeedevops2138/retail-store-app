@@ -151,7 +151,7 @@ For GitHub Actions first configure secrets so the pipelines can be automatically
 > [!IMPORTANT]
 > Once the entire cluster is created, any changes pushed to the repository will automatically trigger GitHub Actions.
 
-GitHub Actions will build and push the updated Docker images to Amazon ECR.
+GitHub Actions will automatically build and push the updated Docker images to Amazon ECR.
 
 
 <img width="2868" height="1120" alt="image" src="https://github.com/user-attachments/assets/27b3d0fa-2e25-4d43-8205-fc52849cfe08" />
