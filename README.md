@@ -185,10 +185,6 @@ Use the EXTERNAL-IP of the ingress-nginx-controller service to access the applic
 kubectl get pods -n argocd
 ```
 
-**Get ArgoCD admin password**
-```
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
-```
 
 ### Step 7: Port-forward to Argo CD UI and login
 
@@ -197,6 +193,10 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 https://localhost:8080
 
+**Get ArgoCD admin password**
+```
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+```
 
 Username: admin 
 
