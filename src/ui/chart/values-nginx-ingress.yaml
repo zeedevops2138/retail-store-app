@@ -1,6 +1,14 @@
 # Custom values for UI with NGINX Ingress Controller
 replicaCount: 1
 
+# Service Account Configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "retail-store-ui-sa"  # Using a different name to avoid conflicts
+
 service:
   type: ClusterIP
   port: 80
@@ -11,20 +19,26 @@ ingress:
   className: "nginx"
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "8m"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Proto $scheme;
-  hosts: []
-  # Uncomment and set your domain if you have one:
-  # - "your-domain.com"
-  tls: []
+    # Basic proxy headers using individual annotations
+    nginx.ingress.kubernetes.io/proxy-set-header: "X-Real-IP $remote_addr"
+    # Cert-manager annotations
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+  hosts:
+    - host: retail-store.iemafzalhassan.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - retail-store.iemafzalhassan.com
+      secretName: retail-store-tls
 
 # Application configuration
 app:
@@ -48,4 +62,12 @@ metrics:
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8080"
-    prometheus.io/path: "/actuator/prometheus" 
+    prometheus.io/path: "/actuator/prometheus"
+
+# Cert Manager Configuration
+certManager:
+  createClusterIssuer: true
+  email: iemafzalhassan@gmail.com
+  clusterIssuerName: "letsencrypt-prod"
+  server: "https://acme-v02.api.letsencrypt.org/directory"
+  privateKeySecretName: "letsencrypt-prod-key" 

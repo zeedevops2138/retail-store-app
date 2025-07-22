@@ -87,24 +87,33 @@ ingress:
   className: "nginx"
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/proxy-body-size: "8m"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - "chart-example.local"
-  hosts: []
-  #  - "chart-example.local"
+  tls:
+    - secretName: tls-secret
+      hosts:
+        - retail-store.iemafzalhassan.com
+  hosts:
+    - retail-store.iemafzalhassan.com
 ingresses: []
 # - name: default
 #   className: ""
 #   hosts: []
 #   annotations: {}
 #   tls: []
+
+# Cert Manager Configuration
+certManager:
+  createClusterIssuer: true
+  email: iemafzalhassan@gmail.com
+  clusterIssuerName: "letsencrypt-prod"
+  server: "https://acme-v02.api.letsencrypt.org/directory"
+  privateKeySecretName: "letsencrypt-prod-key"
 
 istio:
   enabled: false
