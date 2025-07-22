@@ -118,9 +118,8 @@ This creates the core infrastructure including:
 aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
 
-### Phase 2: Deploy Remaining Resources
+### Phase 2: Once you update kubeconfig apply Remaining Configuration 
 
-In 2nd Phase: Once you update kubeconfig apply Remaining Configuration 
 
 ```bash
 terraform apply --auto-approve
