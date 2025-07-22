@@ -206,6 +206,9 @@ password: (from Step 7)
 
 This project implements GitOps principles, where Git is the `single source of truth` for both infrastructure and application deployments.
 
+---
+
+
 ### What is GitOps?
 
 GitOps is a set of practices that uses Git as the `single source of truth` for declarative infrastructure and applications. With GitOps:
