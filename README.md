@@ -132,9 +132,6 @@ This deploys:
 
 ### Step 5: GitHub Actions
 
-Once the entire cluster is created, any changes pushed to the repository will automatically trigger GitHub Actions.
-GitHub Actions will then build and push the updated Docker images to Amazon ECR.
-
 For GitHub Actions first configure secrets so the pipelines can be automatically triggred:
 
 **Create an IAM User, provide required policies, and Generate Credentails**
@@ -147,6 +144,13 @@ For GitHub Actions first configure secrets so the pipelines can be automatically
 | `AWS_SECRET_ACCESS_KEY` | `Your AWS Secret Access Key`     |
 | `AWS_REGION`          | `region-name`                       |
 | `AWS_ACCOUNT_ID`        | `your-account-id` |
+
+Once the entire cluster is created, any changes pushed to the repository will automatically trigger GitHub Actions.
+
+GitHub Actions will build and push the updated Docker images to Amazon ECR.
+
+
+<img width="2868" height="1120" alt="image" src="https://github.com/user-attachments/assets/27b3d0fa-2e25-4d43-8205-fc52849cfe08" />
 
 
 ### 4. Configure kubectl to Access the EKS Cluster
