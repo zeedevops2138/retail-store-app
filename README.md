@@ -95,12 +95,13 @@ The deployment is split into two phases for better control:
 
 #### Phase 1: Create EKS Cluster
 
-In 1st Phase: Terraform Initializes and Creates resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles).
+In 1st Phase: Terraform Initializes and Creates resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles). 
 
 ```bash
 terraform init
 terraform apply -target=module.retail_app_eks
 ```
+Run this command in this Directory terraform/eks/default
 
 
 <img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/6f1e407e-4a4e-4a4c-9bdf-0c9b89681368" />
