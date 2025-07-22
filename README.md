@@ -45,7 +45,7 @@ The Retail Store Sample App demonstrates a modern microservices architecture dep
 
 All components are instrumented for Prometheus metrics and OpenTelemetry OTLP tracing, making this an excellent example for learning about cloud-native observability.
 
-## Architecture
+## Application Architecture
 
 ![Architecture Diagram](./docs/images/architecture.png)
 
@@ -67,6 +67,7 @@ Before you begin, ensure you have the following tools installed:
 - **Git** (2.0.0 or later)
 - **Docker** (for local development)
 
+
 ## Getting Started
 
 Follow these steps to deploy the application:
@@ -77,6 +78,7 @@ Follow these steps to deploy the application:
 git clone https://github.com/iemafzalhassan/retail-store-sample-app.git
 cd retail-store-sample-app
 ```
+
 
 ### 2. Configure AWS Credentials
 
@@ -96,6 +98,10 @@ The deployment is split into two phases for better control:
 terraform init
 terraform apply -target=module.retail_app_eks
 ```
+
+
+<img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/6f1e407e-4a4e-4a4c-9bdf-0c9b89681368" />
+
 
 This creates the core infrastructure including:
 - VPC with public and private subnets
