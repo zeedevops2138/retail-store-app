@@ -216,8 +216,16 @@ kubectl get ingress -n retail-store
 
 To delete all resources created by Terraform:
 
+**Don't run both at once**
+
+**For Phase 1: Run this command**
+
 ```bash
 terraform destroy -target=module.retail_app_eks --auto-approve
+```
+
+**For Phase 2: Run this command**
+```
 terraform destroy --auto-approve
 ```
 
