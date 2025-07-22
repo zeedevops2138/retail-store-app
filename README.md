@@ -72,7 +72,7 @@ Before you begin, ensure you have the following tools installed:
 
 Follow these steps to deploy the application:
 
-### 1. Clone the Repository
+### step 1. Clone the Repository
 
 ```bash
 git clone https://github.com/iemafzalhassan/retail-store-sample-app.git
@@ -80,7 +80,7 @@ cd retail-store-sample-app
 ```
 
 
-### 2. Configure AWS Credentials
+### step 2. Configure AWS Credentials
 
 Ensure your AWS CLI is configured with the appropriate credentials:
 
@@ -88,9 +88,11 @@ Ensure your AWS CLI is configured with the appropriate credentials:
 aws configure
 ```
 
-### 3. Deploy Infrastructure with Terraform
+### step 3. Deploy Infrastructure with Terraform
 
 The deployment is split into two phases for better control:
+
+In 1st Phase: Terraform Initializes and Creates resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles).
 
 #### Phase 1: Create EKS Cluster
 
@@ -109,7 +111,14 @@ This creates the core infrastructure including:
 - Bastion host for secure cluster access
 - Security groups and IAM roles
 
+Step 2: Update kubeconfig to Access the EKS Cluster
+```
+aws eks update-kubeconfig --name retail-store --region ap-south-1
+```
+
 #### Phase 2: Deploy Remaining Resources
+
+In 2nd Phase: Once you update kubeconfig pply Remaining Configuration this creates (Kubernetes-related resources, Argo CD setup, Monitoring resources)
 
 ```bash
 terraform apply --auto-approve
