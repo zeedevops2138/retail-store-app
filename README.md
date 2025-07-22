@@ -154,7 +154,9 @@ For GitHub Actions first configure secrets so the pipelines can be automatically
 GitHub Actions will automatically build and push the updated Docker images to Amazon ECR.
 
 
-<img width="2868" height="1120" alt="image" src="https://github.com/user-attachments/assets/27b3d0fa-2e25-4d43-8205-fc52849cfe08" />
+
+<img width="2868" height="1130" alt="image" src="https://github.com/user-attachments/assets/f29c3416-d630-4463-81d2-aaa8af9a02da" />
+
 
 
 ### 4. Configure kubectl to Access the EKS Cluster
