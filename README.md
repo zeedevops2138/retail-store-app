@@ -202,13 +202,12 @@ Username: admin
 
 password: (from Step 7)
 
+# | Let’s Understand the Concept |
+
 ## GitOps Workflow
 
 This project implements GitOps principles, where Git is the `single source of truth` for both infrastructure and application deployments.
 
-# =============================
-#  Let’s Understand the Concept
-# =============================
 
 ### What is GitOps?
 
