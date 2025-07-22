@@ -165,6 +165,7 @@ Check if the nodes are running:
 ```bash
 kubectl get nodes
 ```
+##### OR 
 
 ### Step 6: Verify the status of Argo CD pods
 ```
