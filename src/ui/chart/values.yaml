@@ -6,7 +6,7 @@ replicaCount: 1
 image:
   repository: 565393041505.dkr.ecr.eu-west-1.amazonaws.com/retail-store-sample-ui
   pullPolicy: Always
-  tag: "main-1e7c09a"
+  tag: "main-1e021c7"
 imagePullSecrets:
   - name: regcred
 nameOverride: ""
@@ -114,7 +114,6 @@ certManager:
   clusterIssuerName: "letsencrypt-prod"
   server: "https://acme-v02.api.letsencrypt.org/directory"
   privateKeySecretName: "letsencrypt-prod-key"
-
 istio:
   enabled: false
   hosts: []
