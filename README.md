@@ -107,13 +107,13 @@ terraform apply -target=module.retail_app_eks
 
 This creates the core infrastructure including:
 - VPC with public and private subnets
-- EKS cluster with Auto Mode enabled
+- Amazon EKS cluster with Auto Mode enabled
 - Bastion host for secure cluster access
 - Security groups and IAM roles
 
   
 
-### Step 4: Update kubeconfig to Access the EKS Cluster
+### Step 4: Update kubeconfig to Access the Amazon EKS Cluster
 ```
 aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
@@ -132,8 +132,8 @@ This deploys:
 
 ### Step 5: GitHub Actions
 
-Once the Entire Cluster is created use GitHub Actions to automatically build and push Docker images to ECR whenever you do changes to the repo github actions will be automatically triggered. 
-
+Once the entire cluster is created, any changes pushed to the repository will automatically trigger GitHub Actions.
+GitHub Actions will then build and push the updated Docker images to Amazon ECR.
 
 For GitHub Actions first configure secrets so the pipelines can be automatically triggred:
 
