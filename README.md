@@ -93,7 +93,7 @@ aws configure
 The deployment is split into two phases for better control:
 
 
-### Phase 1: Create EKS Cluster 
+### Phase 1 of Terraform: Create EKS Cluster 
 
 In 1st Phase: Terraform Initializes and Creates resources inside retail_app_eks module. 
 
@@ -118,7 +118,7 @@ This creates the core infrastructure including:
 aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
 
-### Phase 2: Once you update kubeconfig apply Remaining Configuration 
+### Phase 2 of Terraform: Once you update kubeconfig apply Remaining Configuration 
 
 
 ```bash
