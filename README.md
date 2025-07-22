@@ -233,7 +233,7 @@ terraform destroy --auto-approve
 # Kindly Note This
 
 > [!NOTE]
-> Only ECR Repositories you need to Manually Delete it form AWS Console
+> Only ECR Repositories you need to Manually Delete it from AWS Console
 
 
 ##### ------------------------------------------------------------------------------------------------------------------------------
