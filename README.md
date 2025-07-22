@@ -202,7 +202,9 @@ Username: admin
 
 password: (from Step 7)
 
-# | Let’s Understand the Concept |
+# =============================
+
+#  Let’s Understand the Concept 
 
 ## GitOps Workflow
 
