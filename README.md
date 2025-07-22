@@ -177,7 +177,7 @@ Use the EXTERNAL-IP of the ingress-nginx-controller service to access the applic
 
 <img width="2912" height="1756" alt="image" src="https://github.com/user-attachments/assets/095077d6-d3cb-48f6-b021-e977db5fb242" />
 
-### Step 6: Argo CD Automated Deployment
+### Step 7: Argo CD Automated Deployment
 
 **Verify ArgoCD installation**
 
@@ -186,7 +186,7 @@ kubectl get pods -n argocd
 ```
 
 
-### Step 7: Port-forward to Argo CD UI and login
+### Step 8: Port-forward to Argo CD UI and login
 
 **Get ArgoCD admin password**
 ```
@@ -212,13 +212,13 @@ Password: <output of previous command>
 <img width="2915" height="1755" alt="image" src="https://github.com/user-attachments/assets/20c00b41-bc87-4038-b06f-56867340a269" />
 
 
-# STEP 8: Monitor application deployment
+### Step 9: Monitor application deployment
 ```
 kubectl get pods -n retail-store
 kubectl get ingress -n retail-store
 ```
 
-## Step 9: Cleanup 
+### Step 10: Cleanup 
 
 To delete all resources created by Terraform:
 
