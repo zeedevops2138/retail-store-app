@@ -5,10 +5,10 @@
 <div align="center">
   <div align="center">
 
-[![Stars](https://img.shields.io/github/stars/aws-containers/retail-store-sample-app)](Stars)
-![GitHub License](https://img.shields.io/github/license/aws-containers/retail-store-sample-app?color=green)
-![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Faws-containers%2Fretail-store-sample-app%2Frefs%2Fheads%2Fmain%2F.release-please-manifest.json&query=%24%5B%22.%22%5D&label=release)
-![GitHub Release Date](https://img.shields.io/github/release-date/aws-containers/retail-store-sample-app)
+[![Stars](https://img.shields.io/github/stars/iemafzalhassan/retail-store-sample-app)](Stars)
+![GitHub License](https://img.shields.io/github/license/iemafzalhassan/retail-store-sample-app?color=green)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiemafzalhassan%2Fretail-store-sample-app%2Frefs%2Fheads%2Fmain%2F.release-please-manifest.json&query=%24%5B%22.%22%5D&label=release)
+
 
   </div>
 
@@ -37,19 +37,19 @@ This is a sample application designed to illustrate various concepts related to 
 
 The Retail Store Sample App demonstrates a modern microservices architecture deployed on AWS EKS using GitOps principles. The application consists of multiple services that work together to provide a complete retail store experience:
 
+![Application Architecture Diagram](./docs/images/application-architecture.png)
+
 - **UI Service**: Java-based frontend
 - **Catalog Service**: Go-based product catalog API
 - **Cart Service**: Java-based shopping cart API
 - **Orders Service**: Java-based order management API
 - **Checkout Service**: Node.js-based checkout orchestration API
 
-All components are instrumented for Prometheus metrics and OpenTelemetry OTLP tracing, making this an excellent example for learning about cloud-native observability.
+## Infrastructure Architecture
 
-## Application Architecture
+![Infrastructure Architecture Diagram](./docs/images/architecture.png)
 
-![Architecture Diagram](./docs/images/architecture.png)
-
-The application architecture follows cloud-native best practices:
+The Infrastructure Architecture follows cloud-native best practices:
 
 - **Microservices**: Each component is developed and deployed independently
 - **Containerization**: All services run as containers on Kubernetes
@@ -114,7 +114,7 @@ This creates the core infrastructure including:
 
 ### Step 4: Update kubeconfig to Access the Amazon EKS Cluster
 ```
-aws eks update-kubeconfig --name retail-store --region ap-south-1
+aws eks update-kubeconfig --name retail-store --region <region>
 ```
 
 ### Phase 2 of Terraform: Once you update kubeconfig apply Remaining Configuration 
@@ -188,17 +188,23 @@ kubectl get pods -n argocd
 
 ### Step 7: Port-forward to Argo CD UI and login
 
-```
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
-https://localhost:8080
-
-Username: admin 
-
 **Get ArgoCD admin password**
 ```
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
 ```
+
+**Port-forward to Argo CD UI**
+```
+kubectl port-forward svc/argocd-server -n argocd 8080:443 &
+```
+
+Open your browser and navigate to:
+https://localhost:8080
+
+Username: admin 
+
+Password: <output of previous command>
+
 
 
 ### Argocd UI
@@ -234,148 +240,6 @@ terraform destroy --auto-approve
 
 > [!NOTE]
 > Only ECR Repositories you need to Manually Delete it from AWS Console
-
-
-##### ------------------------------------------------------------------------------------------------------------------------------
-
-## GitOps Workflow
-
-This project implements GitOps principles, where Git is the `single source of truth` for both infrastructure and application deployments.
-
-
-### What is GitOps?
-
-GitOps is a set of practices that uses Git as the `single source of truth` for declarative infrastructure and applications. With GitOps:
-
-1. All system changes are made through Git
-2. Changes are automatically applied to the system
-3. The system continuously reconciles to match the desired state in Git
-
-### How GitOps Works in This Project
-
-1. **Infrastructure as Code (Terraform)**:
-   - VPC, EKS, and all AWS resources are defined in Terraform
-   - Changes to infrastructure require changes to Terraform files
-   - Changes are applied through the Terraform workflow
-
-2. **Application Deployment (ArgoCD)**:
-   - ArgoCD monitors the Git repository for changes
-   - When changes are detected, ArgoCD automatically applies them to the cluster
-   - The system continuously reconciles to match the desired state
-
-3. **CI/CD Pipeline (GitHub Actions)**:
-   - Code changes trigger automated builds
-   - New container images are pushed to ECR
-   - Helm chart values are updated with new image tags
-   - ArgoCD detects the changes and deploys the new versions
-
-## EKS Auto Mode
-
-This project uses EKS Auto Mode, a simplified way to manage EKS clusters.
-
-### What is EKS Auto Mode?
-
-EKS Auto Mode is a feature that simplifies node management by automatically:
-
-1. Creating and managing node groups based on workload requirements
-2. Scaling nodes up and down based on demand
-3. Handling node updates and replacements
-
-### Benefits of EKS Auto Mode
-
-- **Simplified Management**: No need to manually configure node groups
-- **Cost Optimization**: Automatically scales based on actual usage
-- **Improved Reliability**: Automatic node replacement for failed nodes
-- **Seamless Updates**: Simplified Kubernetes version upgrades
-
-## Infrastructure Components
-
-The infrastructure is built using Terraform and consists of:
-
-### VPC Configuration
-
-- **CIDR Block**: 10.0.0.0/16
-- **Availability Zones**: 3 AZs for high availability
-- **Public Subnets**: For bastion host and load balancers
-- **Private Subnets**: For EKS nodes (secure by design)
-- **NAT Gateway**: For outbound internet access from private subnets
-- **Internet Gateway**: For inbound/outbound access from public subnets
-
-### EKS Cluster
-
-- **Version**: Kubernetes 1.33
-- **Auto Mode**: Enabled with general-purpose node pools
-- **Endpoint Access**: Public endpoint with security group restrictions
-- **Add-ons**:
-  - NGINX Ingress Controller
-  - Cert Manager for SSL certificates
-
-### Security
-
-- **Bastion Host**: Ubuntu EC2 instance in public subnet for secure cluster access
-- **Security Groups**: Properly configured for least privilege access
-- **IAM Roles**: Following AWS best practices for permissions
-
-## CI/CD Pipeline
-
-The CI/CD pipeline is implemented using GitHub Actions and consists of:
-
-### 1. Semantic Release
-
-- Automatically determines the next version number
-- Creates Git tags and releases
-- Updates the changelog
-
-### 2. Container Build and Push
-
-- Builds Docker images for all microservices
-- Scans images for security vulnerabilities using Trivy
-- Tags images with branch-commit format
-- Pushes images to Amazon ECR
-
-### 3. Helm Chart Updates
-
-- Updates Helm chart values.yaml with new image tags
-- Commits changes back to the repository
-- Triggers ArgoCD synchronization
-
-### 4. GitOps Deployment
-
-- ArgoCD detects changes in the Git repository
-- Automatically applies changes to the Kubernetes cluster
-- Ensures the cluster state matches the desired state in Git
-
-## Monitoring and Observability
-
-The application includes built-in monitoring and observability:
-
-- **Prometheus Metrics**: All services expose Prometheus metrics
-- **OpenTelemetry Tracing**: Distributed tracing across services
-- **Health Checks**: Readiness and liveness probes for all services
-
-This will remove all AWS resources created for this project.
-
-## Troubleshooting
-
-### Common Issues
-
-1. **EKS Cluster Creation Fails**:
-   - Check IAM permissions
-   - Ensure you have sufficient quotas in your AWS account
-
-2. **ArgoCD Sync Fails**:
-   - Check ArgoCD logs: `kubectl logs -n argocd deployment/argocd-application-controller`
-   - Verify the Git repository is accessible
-
-3. **Services Not Accessible**:
-   - Check ingress controller: `kubectl get svc -n ingress-nginx`
-   - Verify security group rules allow traffic
-
-### Getting Help
-
-If you encounter issues, please:
-1. Check the existing GitHub issues
-2. Create a new issue with detailed information about your problem
 
 ## Contributing
 
