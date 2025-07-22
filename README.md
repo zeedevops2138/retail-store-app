@@ -99,7 +99,7 @@ In 1st Phase: Terraform Initializes and Creates resources inside retail_app_eks 
 
 ```bash
 terraform init
-terraform apply -target=module.retail_app_eks
+terraform apply -target=module.retail_app_eks --auto-approve
 ```
 
 <img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/6f1e407e-4a4e-4a4c-9bdf-0c9b89681368" />
