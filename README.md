@@ -93,9 +93,9 @@ aws configure
 The deployment is split into two phases for better control:
 
 
-#### Phase 1: Create EKS Cluster ( Terraform Initializes and Creates resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles). )
+### Phase 1: Create EKS Cluster 
 
-
+In 1st Phase: Terraform Initializes and Creates resources inside retail_app_eks module. 
 
 ```bash
 terraform init
@@ -118,16 +118,16 @@ This creates the core infrastructure including:
 aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
 
-#### Phase 2: Deploy Remaining Resources
+### Phase 2: Deploy Remaining Resources
 
-In 2nd Phase: Once you update kubeconfig apply Remaining Configuration this creates (Kubernetes-related resources, Argo CD setup, Monitoring resources)
+In 2nd Phase: Once you update kubeconfig apply Remaining Configuration 
 
 ```bash
 terraform apply --auto-approve
 ```
 
 This deploys:
-- ArgoCD for GitOps
+- ArgoCD for Setup GitOps
 - NGINX Ingress Controller
 - Cert Manager for SSL certificates
 
