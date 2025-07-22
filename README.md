@@ -134,9 +134,10 @@ This deploys:
 
 For GitHub Actions first configure secrets so the pipelines can be automatically triggred:
 
-**Create an IAM User, provide required policies, and Generate Credentails**
+**Create an IAM User, policies, and Generate Credentails**
 
 **Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret.**
+
 
 | Secret Name           | Value                              |
 |-----------------------|------------------------------------|
