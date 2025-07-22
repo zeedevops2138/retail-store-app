@@ -92,9 +92,10 @@ aws configure
 
 The deployment is split into two phases for better control:
 
-In 1st Phase: Terraform Initializes and Creates resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles).
 
 #### Phase 1: Create EKS Cluster
+
+In 1st Phase: Terraform Initializes and Creates resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles).
 
 ```bash
 terraform init
