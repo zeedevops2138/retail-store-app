@@ -165,20 +165,6 @@ Check if the nodes are running:
 kubectl get nodes
 ```
 
-**Check the status of all the pods**
-
-```bash
-kubectl get pods -A
-```
-
-<img width="1442" height="618" alt="image" src="https://github.com/user-attachments/assets/163ee8a2-8a37-4453-a319-1d9066597ba2" />
-
-#### Port-forward to Argo CD UI and login
-
-```
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
-
 ### Step 6: Access the Application
 
 The application is exposed through the NGINX Ingress Controller. Get the load balancer URL:
@@ -203,6 +189,15 @@ kubectl get pods -n argocd
 ```
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
 ```
+
+#### Port-forward to Argo CD UI and login
+
+```
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+https://localhost:8080
+Username: admin
+Password: (from step 7)
 
 ## GitOps Workflow
 
