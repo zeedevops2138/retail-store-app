@@ -111,7 +111,9 @@ This creates the core infrastructure including:
 - Bastion host for secure cluster access
 - Security groups and IAM roles
 
-Step 2: Update kubeconfig to Access the EKS Cluster
+  
+
+### Step 2: Update kubeconfig to Access the EKS Cluster
 ```
 aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
