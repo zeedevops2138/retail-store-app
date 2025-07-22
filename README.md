@@ -194,6 +194,9 @@ kubectl get svc -n ingress-nginx
 
 Use the EXTERNAL-IP of the ingress-nginx-controller service to access the application.
 
+<img width="2624" height="137" alt="image" src="https://github.com/user-attachments/assets/34886dd6-66a0-4c3a-8fb0-0db02ff92595" />
+
+
 <img width="2899" height="1760" alt="image" src="https://github.com/user-attachments/assets/9eafce60-773e-41ad-9ece-be7c8384a811" />
 
 
