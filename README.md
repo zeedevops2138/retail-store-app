@@ -101,8 +101,6 @@ In 1st Phase: Terraform Initializes and Creates resources inside the retail_app_
 terraform init
 terraform apply -target=module.retail_app_eks
 ```
-Note: Run this command in this Directory terraform/eks/default
-
 
 <img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/6f1e407e-4a4e-4a4c-9bdf-0c9b89681368" />
 
