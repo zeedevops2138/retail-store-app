@@ -230,6 +230,11 @@ terraform destroy --auto-approve
 
 <img width="1139" height="439" alt="image" src="https://github.com/user-attachments/assets/5258761a-01c4-49d0-b6f3-997fc10a9f35" />
 
+# Kindly Note This
+
+> [!NOTE]
+> Only ECR Repositories you need to Manually Delete it 
+
 
 ##### ------------------------------------------------------------------------------------------------------------------------------
 
