@@ -97,9 +97,9 @@ ingress:
   tls:
     - secretName: tls-secret
       hosts:
-        - retail-store.iemafzalhassan.com
+        - retail-store.iemafzalhassan.in
   hosts:
-    - retail-store.iemafzalhassan.com
+    - retail-store.iemafzalhassan.in
 ingresses: []
 # - name: default
 #   className: ""

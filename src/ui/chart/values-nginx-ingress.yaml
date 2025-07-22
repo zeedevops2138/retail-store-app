@@ -31,13 +31,13 @@ ingress:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     acme.cert-manager.io/http01-edit-in-place: "true"
   hosts:
-    - host: retail-store.iemafzalhassan.com
+    - host: retail-store.iemafzalhassan.in
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - retail-store.iemafzalhassan.com
+        - retail-store.iemafzalhassan.in
       secretName: retail-store-tls
 
 # Application configuration
