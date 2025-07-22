@@ -202,8 +202,12 @@ Username: admin
 
 password: (from Step 7)
 
-### =================================================================
- Let's understand the concepts 
+# STEP 8: Monitor application deployment
+```
+kubectl get pods -n retail-store
+kubectl get ingress -n retail-store
+```
+#### ------------------------------------------------------------------
 
 ## GitOps Workflow
 
