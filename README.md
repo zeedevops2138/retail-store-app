@@ -212,11 +212,10 @@ kubectl get pods -n retail-store
 kubectl get ingress -n retail-store
 ```
 
-## Cleanup
+## Step 9: Cleanup
 
 To delete all resources created by Terraform:
 
-**Don't run both at once**
 
 **For Phase 1: Run this command**
 
