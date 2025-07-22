@@ -171,10 +171,7 @@ kubectl get nodes
 kubectl get pods -n argocd
 ```
 
-<img width="1293" height="316" alt="image" src="https://github.com/user-attachments/assets/bff8a3f0-a958-453c-98ac-553c7fb90116" />
-
-
-Check the status of all the pods:
+### Step 7: Check the status of all the pods:
 
 ```bash
 kubectl get pods -A
