@@ -202,11 +202,15 @@ Username: admin
 
 password: (from Step 7)
 
+<img width="2915" height="1755" alt="image" src="https://github.com/user-attachments/assets/20c00b41-bc87-4038-b06f-56867340a269" />
+
+
 # STEP 8: Monitor application deployment
 ```
 kubectl get pods -n retail-store
 kubectl get ingress -n retail-store
 ```
+
 ##### ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## GitOps Workflow
