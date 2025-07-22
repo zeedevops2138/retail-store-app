@@ -175,16 +175,22 @@ kubectl get pods -n argocd
 ```
 ##### OR 
 
-### Step 7: Check the status of all the pods:
+**Check the status of all the pods**
 
 ```bash
 kubectl get pods -A
 ```
 
+
 <img width="1442" height="618" alt="image" src="https://github.com/user-attachments/assets/163ee8a2-8a37-4453-a319-1d9066597ba2" />
 
+#### Port-forward to Argo CD UI and login
 
-### 6. Access the Application
+```
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+### Step 7: Access the Application
 
 The application is exposed through the NGINX Ingress Controller. Get the load balancer URL:
 
