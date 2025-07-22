@@ -110,7 +110,6 @@ This creates the core infrastructure including:
 - Amazon EKS cluster with Auto Mode enabled
 - Bastion host for secure cluster access
 - Security groups and IAM roles
-
   
 
 ### Step 4: Update kubeconfig to Access the Amazon EKS Cluster
@@ -167,14 +166,22 @@ Check if the nodes are running:
 kubectl get nodes
 ```
 
-<img width="965" height="74" alt="image" src="https://github.com/user-attachments/assets/b1dfbf44-ea7d-44c2-afa1-b7a1be8a5fe3" />
+### Step 6: Verify the status of Argo CD pods
+```
+kubectl get pods -n argocd
+```
+
+<img width="1293" height="316" alt="image" src="https://github.com/user-attachments/assets/bff8a3f0-a958-453c-98ac-553c7fb90116" />
 
 
-Check the status of the pods:
+Check the status of all the pods:
 
 ```bash
 kubectl get pods -A
 ```
+
+<img width="1442" height="618" alt="image" src="https://github.com/user-attachments/assets/163ee8a2-8a37-4453-a319-1d9066597ba2" />
+
 
 ### 6. Access the Application
 
