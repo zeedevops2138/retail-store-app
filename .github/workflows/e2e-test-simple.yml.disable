@@ -1,0 +1,175 @@
+name: E2E Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  docker-e2e:
+    name: Docker E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and start services
+        run: |
+          cd src/app
+          docker compose up --build -d
+          sleep 60
+
+      - name: Run E2E tests
+        run: |
+          # Wait for services to be ready
+          timeout 300 bash -c 'until curl -f http://localhost:8888/health; do sleep 5; done'
+          
+          # Run basic health checks
+          curl -f http://localhost:8888/health || exit 1
+          curl -f http://localhost:8080/actuator/health || exit 1
+          curl -f http://localhost:8081/health || exit 1
+          curl -f http://localhost:8082/health || exit 1
+          curl -f http://localhost:8083/health || exit 1
+
+      - name: Cleanup
+        if: always()
+        run: |
+          cd src/app
+          docker compose down
+
+  kubernetes-e2e:
+    name: Kubernetes E2E Tests
+    runs-on: ubuntu-latest
+    environment: retail-shop
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate test metadata
+        id: metadata
+        run: |
+          # Generate consistent tags for E2E testing
+          GIT_COMMIT=$(echo ${{ github.sha }} | cut -c1-7)
+          GIT_BRANCH=${{ github.ref_name }}
+          
+          # Use combined tag for E2E tests (same as production deployment)
+          COMBINED_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
+          E2E_TAG="e2e-${GIT_COMMIT}"
+          
+          echo "git-commit=${GIT_COMMIT}" >> $GITHUB_OUTPUT
+          echo "git-branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
+          echo "combined-tag=${COMBINED_TAG}" >> $GITHUB_OUTPUT
+          echo "e2e-tag=${E2E_TAG}" >> $GITHUB_OUTPUT
+          
+          echo "🧪 E2E Test Metadata:"
+          echo "  Git Commit: ${GIT_COMMIT}"
+          echo "  Git Branch: ${GIT_BRANCH}"
+          echo "  Combined Tag: ${COMBINED_TAG}"
+          echo "  E2E Tag: ${E2E_TAG}"
+
+      - name: Build and tag images for E2E
+        run: |
+          COMBINED_TAG="${{ steps.metadata.outputs.combined-tag }}"
+          E2E_TAG="${{ steps.metadata.outputs.e2e-tag }}"
+          ECR_BASE="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
+          
+          # Build all service images with E2E tags
+          docker build -t "retail-store-sample-cart:${E2E_TAG}" src/cart/
+          docker build -t "retail-store-sample-catalog:${E2E_TAG}" src/catalog/
+          docker build -t "retail-store-sample-checkout:${E2E_TAG}" src/checkout/
+          docker build -t "retail-store-sample-orders:${E2E_TAG}" src/orders/
+          docker build -t "retail-store-sample-ui:${E2E_TAG}" src/ui/
+          
+          # Also tag with ECR format for consistency
+          docker tag "retail-store-sample-cart:${E2E_TAG}" "${ECR_BASE}/retail-store-sample-cart:${E2E_TAG}"
+          docker tag "retail-store-sample-catalog:${E2E_TAG}" "${ECR_BASE}/retail-store-sample-catalog:${E2E_TAG}"
+          docker tag "retail-store-sample-checkout:${E2E_TAG}" "${ECR_BASE}/retail-store-sample-checkout:${E2E_TAG}"
+          docker tag "retail-store-sample-orders:${E2E_TAG}" "${ECR_BASE}/retail-store-sample-orders:${E2E_TAG}"
+          docker tag "retail-store-sample-ui:${E2E_TAG}" "${ECR_BASE}/retail-store-sample-ui:${E2E_TAG}"
+
+      - name: Set up Kind cluster
+        uses: helm/kind-action@v1.12.0
+        with:
+          cluster_name: kind
+          version: v0.17.0
+
+      - name: Load images to Kind
+        run: |
+          E2E_TAG="${{ steps.metadata.outputs.e2e-tag }}"
+          
+          kind load docker-image "retail-store-sample-cart:${E2E_TAG}"
+          kind load docker-image "retail-store-sample-catalog:${E2E_TAG}"
+          kind load docker-image "retail-store-sample-checkout:${E2E_TAG}"
+          kind load docker-image "retail-store-sample-orders:${E2E_TAG}"
+          kind load docker-image "retail-store-sample-ui:${E2E_TAG}"
+
+      - name: Deploy to Kind
+        run: |
+          E2E_TAG="${{ steps.metadata.outputs.e2e-tag }}"
+          
+          # Create namespace
+          kubectl create namespace retail-store --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Deploy services using Helm with consistent E2E tags
+          helm install cart src/cart/chart/ --namespace retail-store \
+            --set image.tag="${E2E_TAG}" \
+            --set image.repository="retail-store-sample-cart"
+          
+          helm install catalog src/catalog/chart/ --namespace retail-store \
+            --set image.tag="${E2E_TAG}" \
+            --set image.repository="retail-store-sample-catalog"
+          
+          helm install checkout src/checkout/chart/ --namespace retail-store \
+            --set image.tag="${E2E_TAG}" \
+            --set image.repository="retail-store-sample-checkout"
+          
+          helm install orders src/orders/chart/ --namespace retail-store \
+            --set image.tag="${E2E_TAG}" \
+            --set image.repository="retail-store-sample-orders"
+          
+          helm install ui src/ui/chart/ --namespace retail-store \
+            --set image.tag="${E2E_TAG}" \
+            --set image.repository="retail-store-sample-ui"
+
+      - name: Wait for deployment
+        run: |
+          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=cart --namespace retail-store --timeout=300s
+          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=catalog --namespace retail-store --timeout=300s
+          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=checkout --namespace retail-store --timeout=300s
+          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=orders --namespace retail-store --timeout=300s
+          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=ui --namespace retail-store --timeout=300s
+
+      - name: Port forward and test
+        run: |
+          # Port forward UI service
+          kubectl port-forward svc/ui 8888:80 --namespace retail-store &
+          sleep 10
+          
+          # Run basic health checks
+          curl -f http://localhost:8888/health || exit 1
+          
+          # Cleanup port forward
+          pkill -f "kubectl port-forward" 

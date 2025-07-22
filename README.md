@@ -1,4 +1,5 @@
-# Infrastructure Deployment with Terraform and EKS(Auto Mode)
+# Retail Store Sample App - GitOps with EKS Auto Mode
+
 ![Banner](./docs/images/banner.png)
 
 <div align="center">
@@ -16,119 +17,102 @@
   </strong>
 </div>
 
-This is a sample application designed to illustrate various concepts related to containers on AWS. It presents a sample retail store application including a product catalog, shopping cart and checkout.
+This is a sample application designed to illustrate various concepts related to containers on AWS. It presents a sample retail store application including a product catalog, shopping cart and checkout, deployed using modern DevOps practices including GitOps and Infrastructure as Code.
 
-It provides:
+## Table of Contents
 
-- A demo store-front application with themes, pages to show container and application topology information, generative AI chat bot and utility functions for experimentation and demos.
-- An optional distributed component architecture using various languages and frameworks
-- A variety of different persistence backends for the various components like MariaDB (or MySQL), DynamoDB and Redis
-- The ability to run in different container orchestration technologies like Docker Compose, Kubernetes etc.
-- Pre-built container images for both x86-64 and ARM64 CPU architectures
-- All components instrumented for Prometheus metrics and OpenTelemetry OTLP tracing
-- Support for Istio on Kubernetes
-- Load generator which exercises all of the infrastructure
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [GitOps Workflow](#gitops-workflow)
+- [EKS Auto Mode](#eks-auto-mode)
+- [Infrastructure Components](#infrastructure-components)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [Monitoring and Observability](#monitoring-and-observability)
+- [Cleanup](#cleanup)
+- [Troubleshooting](#troubleshooting)
 
-See the [features documentation](./docs/features.md) for more information.
+## Overview
 
-**This project is intended for educational purposes only and not for production use**
+The Retail Store Sample App demonstrates a modern microservices architecture deployed on AWS EKS using GitOps principles. The application consists of multiple services that work together to provide a complete retail store experience:
 
-![Screenshot](/docs/images/screenshot.png)
+- **UI Service**: Java-based frontend
+- **Catalog Service**: Go-based product catalog API
+- **Cart Service**: Java-based shopping cart API
+- **Orders Service**: Java-based order management API
+- **Checkout Service**: Node.js-based checkout orchestration API
 
-## Application Architecture 
+All components are instrumented for Prometheus metrics and OpenTelemetry OTLP tracing, making this an excellent example for learning about cloud-native observability.
 
-The application has been deliberately over-engineered to generate multiple de-coupled components. These components generally have different infrastructure dependencies, and may support multiple "backends" (example: Carts service supports MongoDB or DynamoDB).
+## Architecture
 
-![Architecture](/docs/images/architecture.png)
+![Architecture Diagram](./docs/images/architecture.png)
 
-| Component                  | Language | Container Image                                                             | Helm Chart                                                                        | Description                             |
-| -------------------------- | -------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------- |
-| [UI](./src/ui/)            | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-ui)       | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-ui-chart)       | Store user interface                    |
-| [Catalog](./src/catalog/)  | Go       | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-catalog)  | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-catalog-chart)  | Product catalog API                     |
-| [Cart](./src/cart/)        | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-cart)     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-cart-chart)     | User shopping carts API                 |
-| [Orders](./src/orders)     | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-orders)   | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-orders-chart)   | User orders API                         |
-| [Checkout](./src/checkout) | Node     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-checkout) | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-checkout-chart) | API to orchestrate the checkout process |
+The application architecture follows cloud-native best practices:
 
+- **Microservices**: Each component is developed and deployed independently
+- **Containerization**: All services run as containers on Kubernetes
+- **GitOps**: Infrastructure and application deployment managed through Git
+- **Infrastructure as Code**: All AWS resources defined using Terraform
+- **CI/CD**: Automated build and deployment pipelines with GitHub Actions
 
-##  Architecture Diagram for Creating Application
+## Prerequisites
 
+Before you begin, ensure you have the following tools installed:
 
-## 🧩 Prerequisites
+- **AWS CLI** (configured with appropriate credentials)
+- **Terraform** (version 1.0.0 or later)
+- **kubectl** (compatible with Kubernetes 1.23+)
+- **Git** (2.0.0 or later)
+- **Docker** (for local development)
 
-Make sure you have the following tools installed:
+## Getting Started
 
-- Terraform 
-- AWS CLI configured (`aws configure`)
-- `kubectl` and `eksctl`
-- Docker
+Follow these steps to deploy the application:
 
-
-## 🔁 Fork or Clone the Repository
-
-### 🔹 Fork the Repository
-
-1. Go to the original GitHub repository:  
-   `https://github.com/your-org/your-repo-name`
-   
-2. Click the **Fork** button at the top-right corner.
-
-### 🔹 Clone Your Forked Repo
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name 
+git clone https://github.com/iemafzalhassan/retail-store-sample-app.git
+cd retail-store-sample-app
 ```
 
+### 2. Configure AWS Credentials
 
-## Resources Created using Terraform
+Ensure your AWS CLI is configured with the appropriate credentials:
 
-A fully automated, production-ready infrastructure and deployment pipeline for a microservices-based Application using:
-
-- **VPC** (Subnets, Route Tables, IGW, NAT Gateway)
-- **Amazon EKS** (Elastic Kubernetes Service)
-- **EKS Auto Mode**
-- **IAM Roles**
-- **Security Groups**
-- **Bastion Host** for secure Kubernetes cluster access
-- **Docker** for containerization
-- **Argo CD** for GitOps-based automated deployment
-
-## Quickstart
-
-The following sections provide quickstart instructions for various platforms.
-
-
-## Step 1: Terraform
-
-Run the following commands to create the entire Infrastructure
-
-##### In 1st Phase:  Terraform Initializes and Creates the resources inside the retail_app_eks module (like EKS cluster, node groups, IAM roles).
+```bash
+aws configure
 ```
+
+### 3. Deploy Infrastructure with Terraform
+
+The deployment is split into two phases for better control:
+
+#### Phase 1: Create EKS Cluster
+
+```bash
 terraform init
-terraform apply -target=module.retail_app_eks 
+terraform apply -target=module.retail_app_eks
 ```
 
+This creates the core infrastructure including:
+- VPC with public and private subnets
+- EKS cluster with Auto Mode enabled
+- Bastion host for secure cluster access
+- Security groups and IAM roles
 
-## Step 2: Update kubeconfig to Access the EKS Cluster
-```
-aws eks update-kubeconfig --name retail-store --region ap-south-1
-```
+#### Phase 2: Deploy Remaining Resources
 
-##### In 2nd Phase: Apply Remaining Configuration this will create (Kubernetes-related resources, Argo CD setup, Monitoring resources)
-```
+```bash
 terraform apply --auto-approve
 ```
-It takes approximately 15–20 minutes to create the cluster.
 
-#### Check if the nodes are running
-```
-kubectl get nodes
-```
-
-<img width="1097" height="73" alt="image" src="https://github.com/user-attachments/assets/00c851d0-91a9-4e5e-a1c6-e8aac12a381e" />
-
-
-## Step 3: GitHub Actions
+This deploys:
+- ArgoCD for GitOps
+- NGINX Ingress Controller
+- Cert Manager for SSL certificates
 
 Once the Entire Cluster is created use GitHub Actions to automatically build and push Docker images to ECR whenever you do changes to the repo github actions will be automatically triggered. 
 
@@ -141,61 +125,193 @@ For GitHub Actions first configure secrets so the pipelines can be automatically
 
 | Secret Name           | Value                              |
 |-----------------------|------------------------------------|
-| `AWS_ACCESS_KEY_ID`   | *Your AWS Access Key ID*           |
-| `AWS_SECRET_ACCESS_KEY` | *Your AWS Secret Access Key*     |
+| `AWS_ACCESS_KEY_ID`   | `Your AWS Access Key ID`           |
+| `AWS_SECRET_ACCESS_KEY` | `Your AWS Secret Access Key`     |
 | `AWS_REGION`          | `region-name`                       |
-| `ECR_REGISTRY`        | `your-account-id.dkr.ecr.ap-south-1.amazonaws.com` |
-
- 
+| `AWS_ACCOUNT_ID`        | `your-account-id` |
 
 
+### 4. Configure kubectl to Access the EKS Cluster
 
-
-## Step 4: Argo CD Automated Deployment
-
-Argo CD (Continuous Integration) Installation
-
-```
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```bash
+aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
 
-## Port-forward command for Argo CD UI and login
+### 5. Verify Deployment
 
-```
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
+Check if the nodes are running:
 
-## To get Default Argo CD Admin Password (after initial installation):
-
-```
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```bash
+kubectl get nodes
 ```
 
-<img width="2909" height="1590" alt="image" src="https://github.com/user-attachments/assets/2cd76cea-da96-49ec-95e7-964babc2f313" />
+Check the status of the pods:
 
-
-## Verify Kubernetes Pods
-```
-kubectl get pods
+```bash
+kubectl get pods -A
 ```
 
-## Verify Services 
-```
-kubectl get svc -n ui
-```
-<img width="2909" height="1764" alt="image" src="https://github.com/user-attachments/assets/cffbeda3-b212-481a-bc80-626547dd98b4" />
-Trigger fresh build - Mon 21 Jul 2025 00:17:52 IST
+### 6. Access the Application
 
-### 🧹 Cleanup To delete the entire Infrastructure created by terraform
+The application is exposed through the NGINX Ingress Controller. Get the load balancer URL:
 
-Run both the commands and wait for 10-15 minutes all the resources created with terraform will be deleted.
-
+```bash
+kubectl get svc -n ingress-nginx
 ```
+
+Use the EXTERNAL-IP of the ingress-nginx-controller service to access the application.
+
+## GitOps Workflow
+
+This project implements GitOps principles, where Git is the `single source of truth` for both infrastructure and application deployments.
+
+### What is GitOps?
+
+GitOps is a set of practices that uses Git as the `single source of truth` for declarative infrastructure and applications. With GitOps:
+
+1. All system changes are made through Git
+2. Changes are automatically applied to the system
+3. The system continuously reconciles to match the desired state in Git
+
+### How GitOps Works in This Project
+
+1. **Infrastructure as Code (Terraform)**:
+   - VPC, EKS, and all AWS resources are defined in Terraform
+   - Changes to infrastructure require changes to Terraform files
+   - Changes are applied through the Terraform workflow
+
+2. **Application Deployment (ArgoCD)**:
+   - ArgoCD monitors the Git repository for changes
+   - When changes are detected, ArgoCD automatically applies them to the cluster
+   - The system continuously reconciles to match the desired state
+
+3. **CI/CD Pipeline (GitHub Actions)**:
+   - Code changes trigger automated builds
+   - New container images are pushed to ECR
+   - Helm chart values are updated with new image tags
+   - ArgoCD detects the changes and deploys the new versions
+
+## EKS Auto Mode
+
+This project uses EKS Auto Mode, a simplified way to manage EKS clusters.
+
+### What is EKS Auto Mode?
+
+EKS Auto Mode is a feature that simplifies node management by automatically:
+
+1. Creating and managing node groups based on workload requirements
+2. Scaling nodes up and down based on demand
+3. Handling node updates and replacements
+
+### Benefits of EKS Auto Mode
+
+- **Simplified Management**: No need to manually configure node groups
+- **Cost Optimization**: Automatically scales based on actual usage
+- **Improved Reliability**: Automatic node replacement for failed nodes
+- **Seamless Updates**: Simplified Kubernetes version upgrades
+
+## Infrastructure Components
+
+The infrastructure is built using Terraform and consists of:
+
+### VPC Configuration
+
+- **CIDR Block**: 10.0.0.0/16
+- **Availability Zones**: 3 AZs for high availability
+- **Public Subnets**: For bastion host and load balancers
+- **Private Subnets**: For EKS nodes (secure by design)
+- **NAT Gateway**: For outbound internet access from private subnets
+- **Internet Gateway**: For inbound/outbound access from public subnets
+
+### EKS Cluster
+
+- **Version**: Kubernetes 1.33
+- **Auto Mode**: Enabled with general-purpose node pools
+- **Endpoint Access**: Public endpoint with security group restrictions
+- **Add-ons**:
+  - NGINX Ingress Controller
+  - Cert Manager for SSL certificates
+
+### Security
+
+- **Bastion Host**: Ubuntu EC2 instance in public subnet for secure cluster access
+- **Security Groups**: Properly configured for least privilege access
+- **IAM Roles**: Following AWS best practices for permissions
+
+## CI/CD Pipeline
+
+The CI/CD pipeline is implemented using GitHub Actions and consists of:
+
+### 1. Semantic Release
+
+- Automatically determines the next version number
+- Creates Git tags and releases
+- Updates the changelog
+
+### 2. Container Build and Push
+
+- Builds Docker images for all microservices
+- Scans images for security vulnerabilities using Trivy
+- Tags images with branch-commit format
+- Pushes images to Amazon ECR
+
+### 3. Helm Chart Updates
+
+- Updates Helm chart values.yaml with new image tags
+- Commits changes back to the repository
+- Triggers ArgoCD synchronization
+
+### 4. GitOps Deployment
+
+- ArgoCD detects changes in the Git repository
+- Automatically applies changes to the Kubernetes cluster
+- Ensures the cluster state matches the desired state in Git
+
+## Monitoring and Observability
+
+The application includes built-in monitoring and observability:
+
+- **Prometheus Metrics**: All services expose Prometheus metrics
+- **OpenTelemetry Tracing**: Distributed tracing across services
+- **Health Checks**: Readiness and liveness probes for all services
+
+## Cleanup
+
+To delete all resources created by Terraform:
+
+```bash
 terraform destroy -target=module.retail_app_eks --auto-approve
 terraform destroy --auto-approve
 ```
 
+This will remove all AWS resources created for this project.
 
-<img width="1339" height="509" alt="image" src="https://github.com/user-attachments/assets/85d80080-b4a9-4355-a618-9a59057e8e71" />
+## Troubleshooting
 
+### Common Issues
+
+1. **EKS Cluster Creation Fails**:
+   - Check IAM permissions
+   - Ensure you have sufficient quotas in your AWS account
+
+2. **ArgoCD Sync Fails**:
+   - Check ArgoCD logs: `kubectl logs -n argocd deployment/argocd-application-controller`
+   - Verify the Git repository is accessible
+
+3. **Services Not Accessible**:
+   - Check ingress controller: `kubectl get svc -n ingress-nginx`
+   - Verify security group rules allow traffic
+
+### Getting Help
+
+If you encounter issues, please:
+1. Check the existing GitHub issues
+2. Create a new issue with detailed information about your problem
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](./LICENSE) file for details.
