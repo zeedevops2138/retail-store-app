@@ -190,14 +190,15 @@ kubectl get pods -n argocd
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
 ```
 
-#### Port-forward to Argo CD UI and login
+### Step 7: Port-forward to Argo CD UI and login
 
 ```
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 https://localhost:8080
-Username: admin
-Password: (from step 7)
+
+Username: admin 
+password: (Step 7)
 
 ## GitOps Workflow
 
