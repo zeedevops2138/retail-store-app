@@ -159,12 +159,6 @@ GitHub Actions will automatically build and push the updated Docker images to Am
 
 
 
-### 4. Configure kubectl to Access the EKS Cluster
-
-```bash
-aws eks update-kubeconfig --name retail-store --region ap-south-1
-```
-
 ### 5. Verify Deployment
 
 Check if the nodes are running:
@@ -172,6 +166,9 @@ Check if the nodes are running:
 ```bash
 kubectl get nodes
 ```
+
+<img width="965" height="74" alt="image" src="https://github.com/user-attachments/assets/b1dfbf44-ea7d-44c2-afa1-b7a1be8a5fe3" />
+
 
 Check the status of the pods:
 
