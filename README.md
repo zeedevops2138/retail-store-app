@@ -212,6 +212,15 @@ kubectl get pods -n retail-store
 kubectl get ingress -n retail-store
 ```
 
+## Cleanup
+
+To delete all resources created by Terraform:
+
+```bash
+terraform destroy -target=module.retail_app_eks --auto-approve
+terraform destroy --auto-approve
+```
+
 ##### ------------------------------------------------------------------------------------------------------------------------------
 
 ## GitOps Workflow
@@ -328,15 +337,6 @@ The application includes built-in monitoring and observability:
 - **Prometheus Metrics**: All services expose Prometheus metrics
 - **OpenTelemetry Tracing**: Distributed tracing across services
 - **Health Checks**: Readiness and liveness probes for all services
-
-## Cleanup
-
-To delete all resources created by Terraform:
-
-```bash
-terraform destroy -target=module.retail_app_eks --auto-approve
-terraform destroy --auto-approve
-```
 
 This will remove all AWS resources created for this project.
 
