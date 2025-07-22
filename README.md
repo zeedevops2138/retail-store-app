@@ -113,14 +113,14 @@ This creates the core infrastructure including:
 
   
 
-### Step 2: Update kubeconfig to Access the EKS Cluster
+### Step 4: Update kubeconfig to Access the EKS Cluster
 ```
 aws eks update-kubeconfig --name retail-store --region ap-south-1
 ```
 
 #### Phase 2: Deploy Remaining Resources
 
-In 2nd Phase: Once you update kubeconfig pply Remaining Configuration this creates (Kubernetes-related resources, Argo CD setup, Monitoring resources)
+In 2nd Phase: Once you update kubeconfig apply Remaining Configuration this creates (Kubernetes-related resources, Argo CD setup, Monitoring resources)
 
 ```bash
 terraform apply --auto-approve
@@ -130,6 +130,8 @@ This deploys:
 - ArgoCD for GitOps
 - NGINX Ingress Controller
 - Cert Manager for SSL certificates
+
+### Step 5: GitHub Actions
 
 Once the Entire Cluster is created use GitHub Actions to automatically build and push Docker images to ECR whenever you do changes to the repo github actions will be automatically triggered. 
 
