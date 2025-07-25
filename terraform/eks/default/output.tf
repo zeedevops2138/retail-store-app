@@ -6,64 +6,6 @@ output "configure_kubectl" {
 }
 
 
-
-output "cluster_info" {
-  description = "Information about the EKS cluster"
-  value = {
-    cluster_name = module.retail_app_eks.cluster_name
-    cluster_endpoint = module.retail_app_eks.cluster_endpoint
-    cluster_version = module.retail_app_eks.cluster_version
-  }
-}
-
-
-
-# NGINX Ingress Controller outputs
-output "nginx_ingress_controller_info" {
-  description = "Information about NGINX Ingress Controller"
-  value = {
-    namespace = "ingress-nginx"
-    service_name = "ingress-nginx-controller"
-    check_status_command = "kubectl get svc -n ingress-nginx ingress-nginx-controller"
-    get_external_ip_command = "kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
-  }
-}
-
-output "application_access_info" {
-  description = "Information to access the retail store application"
-  value = {
-    ingress_namespace = "retail-store"
-    ingress_name = "ui"
-    check_ingress_command = "kubectl get ingress -n retail-store"
-    get_ingress_hostname = "kubectl get ingress -n retail-store ui -o jsonpath='{.spec.rules[0].host}'"
-    port_forward_command = "kubectl port-forward -n retail-store svc/ui 8080:80"
-    nginx_loadbalancer_command = "kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
-    access_via_nginx = "Use the LoadBalancer hostname from nginx_loadbalancer_command to access the application"
-  }
-}
-
-# NGINX Ingress endpoint (will be available after deployment)
-output "nginx_ingress_endpoint" {
-  description = "NGINX Ingress Controller LoadBalancer endpoint"
-  value = {
-    get_endpoint_command = "kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
-    access_note = "The retail store UI will be accessible via this LoadBalancer endpoint once ArgoCD deploys the application"
-    verify_command = "curl http://$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
-  }
-}
-
-output "argocd_access_info" {
-  description = "Information to access ArgoCD"
-  value = {
-    namespace = var.argocd_namespace
-    service_name = "argocd-server"
-    port_forward_command = "kubectl port-forward -n ${var.argocd_namespace} svc/argocd-server 8080:443"
-    get_admin_password = "kubectl -n ${var.argocd_namespace} get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
-    admin_username = "admin"
-    access_url = "https://localhost:8080"
-  }
-}
-
 output "deployment_instructions" {
   description = "Step-by-step deployment instructions for the GitOps workflow"
   value = <<-EOT
@@ -78,35 +20,28 @@ output "deployment_instructions" {
     kubectl cluster-info
     kubectl get nodes
     
-    # STEP 3: Run terraform apply (this will install ArgoCD and NGINX Ingress)
-    # terraform apply
-    
-    # STEP 4: Verify NGINX Ingress Controller installation
+    # STEP 3: Verify NGINX Ingress Controller installation
     kubectl get pods -n ingress-nginx
     kubectl get svc -n ingress-nginx
     
-    # STEP 5: Get NGINX Load Balancer external IP/hostname
+    # STEP 4: Get NGINX Load Balancer external IP/hostname
     kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
     
-    # STEP 6: Verify ArgoCD installation
+    # STEP 5: Verify ArgoCD installation
     kubectl get pods -n ${var.argocd_namespace}
     kubectl get svc -n ${var.argocd_namespace}
     
-    # STEP 7: Get ArgoCD admin password
+    # STEP 6: Get ArgoCD admin password
     kubectl -n ${var.argocd_namespace} get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
     
-    # STEP 8: Access ArgoCD UI (port-forward)
+    # STEP 7: Access ArgoCD UI (port-forward)
     kubectl port-forward -n ${var.argocd_namespace} svc/argocd-server 8080:443
     # Then open: https://localhost:8080
     # Username: admin
     # Password: (from step 7)
     
-    # STEP 9: Verify ArgoCD applications
+    # STEP 8: Verify ArgoCD applications
     kubectl get applications -n ${var.argocd_namespace}
-    
-    # STEP 10: Monitor application deployment
-    kubectl get pods -n retail-store
-    kubectl get ingress -n retail-store
     
     # ========================================
     # GITOPS WORKFLOW (after initial setup)
@@ -120,14 +55,3 @@ output "deployment_instructions" {
   EOT
 }
 
-# ArgoCD credentials output
-output "argocd_credentials" {
-  description = "ArgoCD access credentials and commands"
-  value = {
-    username = "admin"
-    password_command = "kubectl -n ${var.argocd_namespace} get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
-    port_forward_command = "kubectl port-forward -n ${var.argocd_namespace} svc/argocd-server 8080:443"
-    access_url = "https://localhost:8080"
-    namespace = var.argocd_namespace
-  }
-}
