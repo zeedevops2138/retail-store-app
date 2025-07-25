@@ -18,14 +18,7 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "~> 2.37.0"
     }
-    tls = {
-      source  = "hashicorp/tls"
-      version = "~> 4.0"
-    }
-    local = {
-      source  = "hashicorp/local"
-      version = "~> 2.4"
-    }
+
     time = {
       source  = "hashicorp/time"
       version = "~> 0.12"
