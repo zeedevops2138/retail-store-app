@@ -309,9 +309,11 @@ cd retail-store-sample-app
 > # ... other values
 > ```
 > </details>
-> 
+>
+> ### Step 4: Comment out `.github/workflows/update-helm-values.yml`:
 
-### Step 3. Deploy Infrastructure with Terraform:
+
+### Step 5. Deploy Infrastructure with Terraform:
 
 The deployment is split into two phases for better control:
 
@@ -336,7 +338,7 @@ This creates the core infrastructure, including:
 - Security groups and IAM roles
   
 
-### Step 4: Update kubeconfig to Access the Amazon EKS Cluster:
+### Step 6: Update kubeconfig to Access the Amazon EKS Cluster:
 ```
 aws eks update-kubeconfig --name retail-store --region <region>
 ```
@@ -353,7 +355,7 @@ This deploys:
 - NGINX Ingress Controller
 - Cert Manager for SSL certificates
 
-### Step 5: GitHub Actions:
+### Step 7: GitHub Actions:
 
 For GitHub Actions, first configure secrets so the pipelines can be automatically triggered:
 
@@ -389,7 +391,7 @@ Check if the nodes are running:
 kubectl get nodes
 ```
 
-### Step 6: Access the Application:
+### Step 8: Access the Application:
 
 The application is exposed through the NGINX Ingress Controller. Get the load balancer URL:
 
@@ -401,7 +403,7 @@ Use the EXTERNAL-IP of the ingress-nginx-controller service to access the applic
 
 <img width="2912" height="1756" alt="image" src="https://github.com/user-attachments/assets/095077d6-d3cb-48f6-b021-e977db5fb242" />
 
-### Step 7: Argo CD Automated Deployment:
+### Step 9: Argo CD Automated Deployment:
 
 **Verify ArgoCD installation**
 
@@ -410,7 +412,7 @@ kubectl get pods -n argocd
 ```
 
 
-### Step 8: Port-forward to Argo CD UI and login:
+### Step 10: Port-forward to Argo CD UI and login:
 
 **Get ArgoCD admin password**
 ```
@@ -442,7 +444,7 @@ kubectl get pods -n retail-store
 kubectl get ingress -n retail-store
 ```
 
-### Step 10: Cleanup 
+### Step 11: Cleanup:
 
 To delete all resources created by Terraform:
 
@@ -461,11 +463,9 @@ terraform destroy --auto-approve
 <img width="1139" height="439" alt="image" src="https://github.com/user-attachments/assets/5258761a-01c4-49d0-b6f3-997fc10a9f35" />
 
 > [!NOTE]
-> Only ECR Repositories you need to Manually Delete it from AWS Console
+> Only ECR Repositories you need to Delete it from AWS Console Manually.
 
-## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ## License
 
