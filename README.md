@@ -72,82 +72,132 @@ Before you begin, ensure you have the following tools installed:
 
 Follow these steps to **install Prerequisites:**
 
+- #### 1. AWS CLI:
 
-- #### Install AWS CLI:
+  * These commands will download and install the **AWS Command Line Interface**.
+
 ```sh
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
-```
-- #### Install Terraform:
-> Linux & Mac Os:
-```sh
-> Navigate here & Download the binary based on your os: https://releases.hashicorp.com/terraform/1.12.2/<File_Name.zip>
-> unzip terraform_1.12.2_<Arch_name>.zip
-> sudo mv terraform /usr/local/bin/
-```
-> Windows Os:
-```sh
-> Follow the steps from the  official Terraform Docs: https://developer.hashicorp.com/terraform/install
+
+# Verify the installation
+aws --version
 ```
 
-- #### Install Kubectl:
-> For macOS:
-```sh
-# Download the kubectl binary
-curl -LO "https://dl.k8s.io/release/v1.33.3/bin/darwin/arm64/kubectl"
+- #### 2. Terraform:
 
-# Make the binary executable
-chmod +x ./kubectl
+  - **Terraform** is installed by downloading the binary appropriate for your operating system.
 
-# Move the binary into your PATH
-sudo mv ./kubectl /usr/local/bin/kubectl
-```
-> For Linux (x86_64)
-```sh
-# Download the kubectl binary
-curl -LO "https://dl.k8s.io/release/v1.33.3/bin/linux/amd64/kubectl"
+    - <details>
+      <summary><strong>Click for Linux & macOS Instructions</strong></summary>
 
-# Make the binary executable
-chmod +x ./kubectl
+      1.  **Download the Binary**: Go to the [Terraform Downloads Page](https://releases.hashicorp.com/terraform/1.12.2) to find the correct zip file for your system (e.g., Linux AMD64, macOS ARM64).
 
-# Move the binary into your PATH
-sudo mv ./kubectl /usr/local/bin/kubectl
-```
-- #### [Install Docker](https://docs.docker.com/desktop/setup/install/linux/):
-- > **Step 1: Set Up the Repository:**
-```sh
-sudo apt-get update
-sudo apt-get install \
-    ca-certificates \
-    curl \
-    gnupg
-```
+      2.  **Install the Binary**: Unzip the file and move the `terraform` executable to a directory in your system's PATH.
+
+        ```sh
+        # Example for a downloaded file
+        unzip terraform_1.9.0_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+        ```
+      3.  **Verify the Installation**:
+     
+        ```sh
+        terraform --version
+        ```
+      </details>
+  
+    - <details>
+      <summary><strong>Click for Windows Instructions</strong></summary>
+  
+        * **Official Guide:** [Install Terraform on Windows](https://developer.hashicorp.com/terraform/install)
+    
+      </details>
+
+- #### 3. kubectl:
+
+  * These commands install a specific version of **kubectl**.
+
+    - <details>
+      <summary><strong>Click for macOS Instructions</strong></summary>
+  
+        ```sh
+        # Download the kubectl binary
+        curl -LO "https://dl.k8s.io/release/v1.33.3/bin/darwin/arm64/kubectl"
+
+        # Make the binary executable
+        chmod +x ./kubectl
+
+          # Move the binary into your PATH
+        sudo mv ./kubectl /usr/local/bin/kubectl
+        ```
+
+      </details>
+
+    - <details>
+      <summary><strong>Click for Linux Instructions</strong></summary>
+  
+      ```sh
+      # Download the kubectl binary
+      curl -LO "https://dl.k8s.io/release/v1.33.3/bin/linux/amd64/kubectl"
+  
+      # Make the binary executable
+      chmod +x ./kubectl
+
+      # Move the binary into your PATH
+      sudo mv ./kubectl /usr/local/bin/kubectl
+      ```
+      
+      </details>
+
+- #### [4. Docker](https://docs.docker.com/desktop/setup/install/linux/):
+
+  - > **Step 1: Set Up the Repository:**
+
+    ```sh
+    sudo apt-get update
+    sudo apt-get install \
+        ca-certificates \
+        curl \
+        gnupg
+    ```
+
   - > **Step 2: Add Docker’s Official GPG Key:**
-```sh
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-```
-  - > **Step 3: Set Up the Docker Repository:**
-```sh
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-```
-  - > **Step 4: Install Docker Engine:**
-```sh
-sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-```
 
-- #### Helm:
-```sh
-curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-chmod 700 get_helm.sh
-./get_helm.sh --version v3.18.4
-```
+    ```sh
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    ```
+  
+  - > **Step 3: Set Up the Docker Repository:**
+
+    ```sh
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    ```
+
+
+  - > **Step 4: Install Docker Engine:**
+    
+    ```sh
+    sudo apt-get update
+    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    # Verify the installation
+    docker --version
+    ```
+
+- #### 5. Helm:
+  
+    ```sh
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    chmod 700 get_helm.sh
+    ./get_helm.sh --version v3.18.4
+    ```
 
 
 
@@ -155,7 +205,7 @@ Follow these steps to deploy the application:
 
 ### Step 1. Configure AWS with **`Root User`** Credentials:
 
-Ensure your AWS CLI is configured with the **Root user credentials:**
+  Ensure your AWS CLI is configured with the **Root user credentials:**
 
 ```sh
 aws configure
