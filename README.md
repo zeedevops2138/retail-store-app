@@ -66,38 +66,120 @@ Before you begin, ensure you have the following tools installed:
 - **kubectl** (compatible with Kubernetes 1.23+)
 - **Git** (2.0.0 or later)
 - **Docker** (for local development)
-
+- **Helm** 
 
 ## Getting Started
 
-Follow these steps to deploy the application:
+Follow these steps to **install Prerequisites:**
 
-### step 1. Clone the Repository
 
-```bash
-git clone https://github.com/iemafzalhassan/retail-store-sample-app.git
-cd retail-store-sample-app
+- #### Install AWS CLI:
+```sh
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+- #### Install Terraform:
+> Linux & Mac Os:
+```sh
+> Navigate here & Download the binary based on your os: https://releases.hashicorp.com/terraform/1.12.2/<File_Name.zip>
+> unzip terraform_1.12.2_<Arch_name>.zip
+> sudo mv terraform /usr/local/bin/
+```
+> Windows Os:
+```sh
+> Follow the steps from the  official Terraform Docs: https://developer.hashicorp.com/terraform/install
+```
+
+- #### Install Kubectl:
+> For macOS:
+```sh
+# Download the kubectl binary
+curl -LO "https://dl.k8s.io/release/v1.33.3/bin/darwin/arm64/kubectl"
+
+# Make the binary executable
+chmod +x ./kubectl
+
+# Move the binary into your PATH
+sudo mv ./kubectl /usr/local/bin/kubectl
+```
+> For Linux (x86_64)
+```sh
+# Download the kubectl binary
+curl -LO "https://dl.k8s.io/release/v1.33.3/bin/linux/amd64/kubectl"
+
+# Make the binary executable
+chmod +x ./kubectl
+
+# Move the binary into your PATH
+sudo mv ./kubectl /usr/local/bin/kubectl
+```
+- #### [Install Docker](https://docs.docker.com/desktop/setup/install/linux/):
+- > **Step 1: Set Up the Repository:**
+```sh
+sudo apt-get update
+sudo apt-get install \
+    ca-certificates \
+    curl \
+    gnupg
+```
+  - > **Step 2: Add Docker’s Official GPG Key:**
+```sh
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+```
+  - > **Step 3: Set Up the Docker Repository:**
+```sh
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+  - > **Step 4: Install Docker Engine:**
+```sh
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+- #### Helm:
+```sh
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh --version v3.18.4
 ```
 
 
-### step 2. Configure AWS Credentials
 
-Ensure your AWS CLI is configured with the appropriate credentials:
+Follow these steps to deploy the application:
 
-```bash
+### Step 1. Configure AWS with **`Root User`** Credentials:
+
+Ensure your AWS CLI is configured with the **Root user credentials:**
+
+```sh
 aws configure
 ```
 
-### step 3. Deploy Infrastructure with Terraform
+### Step 2. Clone the Repository:
+
+```sh
+git clone https://github.com/iemafzalhassan/retail-store-sample-app.git
+cd retail-store-sample-app/terraform/eks/default/
+```
+
+
+
+### Step 3. Deploy Infrastructure with Terraform:
 
 The deployment is split into two phases for better control:
 
 
 ### Phase 1 of Terraform: Create EKS Cluster 
 
-In 1st Phase: Terraform Initializes and Creates resources inside retail_app_eks module. 
+In Phase 1: Terraform Initialises and creates resources within the retail_app_eks module. 
 
-```bash
+```sh
 terraform init
 terraform apply -target=module.retail_app_eks --auto-approve
 ```
@@ -105,19 +187,19 @@ terraform apply -target=module.retail_app_eks --auto-approve
 <img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/6f1e407e-4a4e-4a4c-9bdf-0c9b89681368" />
 
 
-This creates the core infrastructure including:
+This creates the core infrastructure, including:
 - VPC with public and private subnets
 - Amazon EKS cluster with Auto Mode enabled
 - Bastion host for secure cluster access
 - Security groups and IAM roles
   
 
-### Step 4: Update kubeconfig to Access the Amazon EKS Cluster
+### Step 4: Update kubeconfig to Access the Amazon EKS Cluster:
 ```
 aws eks update-kubeconfig --name retail-store --region <region>
 ```
 
-### Phase 2 of Terraform: Once you update kubeconfig apply Remaining Configuration 
+### Phase 2 of Terraform: Once you update kubeconfig, apply the Remaining Configuration:
 
 
 ```bash
@@ -129,11 +211,11 @@ This deploys:
 - NGINX Ingress Controller
 - Cert Manager for SSL certificates
 
-### Step 5: GitHub Actions
+### Step 5: GitHub Actions:
 
-For GitHub Actions first configure secrets so the pipelines can be automatically triggred:
+For GitHub Actions, first configure secrets so the pipelines can be automatically triggered:
 
-**Create an IAM User, policies, and Generate Credentails**
+**Create an IAM User, policies, and generate credentials**
 
 **Go to your GitHub repo → Settings → Secrets and variables → Actions → New repository secret.**
 
@@ -165,7 +247,7 @@ Check if the nodes are running:
 kubectl get nodes
 ```
 
-### Step 6: Access the Application
+### Step 6: Access the Application:
 
 The application is exposed through the NGINX Ingress Controller. Get the load balancer URL:
 
@@ -177,7 +259,7 @@ Use the EXTERNAL-IP of the ingress-nginx-controller service to access the applic
 
 <img width="2912" height="1756" alt="image" src="https://github.com/user-attachments/assets/095077d6-d3cb-48f6-b021-e977db5fb242" />
 
-### Step 7: Argo CD Automated Deployment
+### Step 7: Argo CD Automated Deployment:
 
 **Verify ArgoCD installation**
 
@@ -186,7 +268,7 @@ kubectl get pods -n argocd
 ```
 
 
-### Step 8: Port-forward to Argo CD UI and login
+### Step 8: Port-forward to Argo CD UI and login:
 
 **Get ArgoCD admin password**
 ```
