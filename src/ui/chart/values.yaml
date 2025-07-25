@@ -63,11 +63,11 @@ configMap:
   name: # if blank this will be generated
 app:
   # theme: default
-  endpoints: {}
-  #catalog: http://catalog:80
-  #carts: http://carts:80
-  #orders: http://orders:80
-  #checkout: http://checkout:80
+  endpoints:
+    catalog: http://retail-store-catalog:80
+    carts: http://retail-store-cart-carts:80
+    orders: http://retail-store-orders:80
+    checkout: http://retail-store-checkout:80
   chat:
     enabled: false
     provider: ""

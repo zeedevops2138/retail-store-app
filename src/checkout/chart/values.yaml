@@ -63,7 +63,7 @@ app:
     redis:
       endpoint: ''
   endpoints:
-    orders: ''
+    orders: http://retail-store-orders:80
 redis:
   create: false
   image:
