@@ -165,10 +165,101 @@ aws configure
 
 ```sh
 git clone https://github.com/iemafzalhassan/retail-store-sample-app.git
-cd retail-store-sample-app/terraform/eks/default/
+cd retail-store-sample-app
 ```
 
-
+> [!IMPORTANT]
+> ### Step 3: Initial Deployment with Public Images:
+>
+> <details>
+>  <summary><strong>Click to Read:</strong> First-Time Deployment Instructions</summary>
+>
+>  * On the initial deploy, ArgoCD is configured to use public container images as specified in this guide.
+>  * After this first deployment, the GitHub Actions workflow will run automatically, updating the `values.yaml` files to use your private ECR images and tags for all future deployments.
+> </details>
+> 
+> ### Automatic Update Instructions:
+> 
+> ```sh
+> ./scripts/update-helm-values.sh
+> ```
+> 
+> ### Manual Update Instructions:
+> 
+> For the initial deployment, you must update the `values.yaml` file for each of the five services to use the public ECR images.
+> 
+> #### **Service-Specific Configuration**
+> 
+> <details>
+> <summary><strong>1. Cart Service</strong></summary>
+> 
+> Update `src/cart/chart/values.yaml` to match the following content:
+> ```yaml
+> # ... other values
+> image:
+>   repository: public.ecr.aws/aws-containers/retail-store-sample-cart
+>   pullPolicy: Always
+>   tag: "1.2.2"
+> # ... other values
+> ```
+> </details>
+> 
+> <details>
+> <summary><strong>2. Catalog Service</strong></summary>
+> 
+> Update `src/catalog/chart/values.yaml` to match the following content:
+> ```yaml
+> # ... other values
+> image:
+>   repository: public.ecr.aws/aws-containers/retail-store-sample-catalog
+>   pullPolicy: Always
+>   tag: "1.2.2"
+> # ... other values
+> ```
+> </details>
+> 
+> <details>
+> <summary><strong>3. Checkout Service</strong></summary>
+>
+> Update `src/checkout/chart/values.yaml` to match the following content:
+> ```yaml
+> # ... other values
+> image:
+>   repository: public.ecr.aws/aws-containers/retail-store-sample-checkout
+>   pullPolicy: Always
+>   tag: "1.2.2"
+> # ... other values
+> ```
+> </details>
+> 
+> <details>
+> <summary><strong>4. Orders Service</strong></summary>
+> 
+> Update `src/orders/chart/values.yaml` to match the following content:
+> ```yaml
+> # ... other values
+> image:
+>   repository: public.ecr.aws/aws-containers/retail-store-sample-orders
+>   pullPolicy: Always
+>   tag: "1.2.2"
+> # ... other values
+> ```
+> </details>
+> 
+> <details>
+> <summary><strong>5. UI Service</strong></summary>
+>
+> Update `src/ui/chart/values.yaml` to match the following content:
+> ```yaml
+> # ... other values
+> image:
+>   repository: public.ecr.aws/aws-containers/retail-store-sample-ui
+>   pullPolicy: Always
+>   tag: "1.2.2"
+> # ... other values
+> ```
+> </details>
+> 
 
 ### Step 3. Deploy Infrastructure with Terraform:
 
@@ -180,6 +271,7 @@ The deployment is split into two phases for better control:
 In Phase 1: Terraform Initialises and creates resources within the retail_app_eks module. 
 
 ```sh
+cd retail-store-sample-app/terraform/eks/default/
 terraform init
 terraform apply -target=module.retail_app_eks --auto-approve
 ```
