@@ -144,12 +144,7 @@ jobs:
           
           if ! git diff --quiet "src/${SERVICE}/chart/values.yaml"; then
             git add "src/${SERVICE}/chart/values.yaml"
-            git commit -m "🚀 Update ${SERVICE} Helm chart to ${TAG}
-
-- Service: ${SERVICE}
-- Image tag: ${TAG}
-- ECR repository: retail-store-${SERVICE}
-- Commit: ${{ github.sha }}"
+            git commit -m "🚀 Update ${SERVICE} Helm chart to ${TAG} - ECR: retail-store-${SERVICE} - Commit: ${{ github.sha }}"
             
             # Push with retry logic
             for i in {1..3}; do
