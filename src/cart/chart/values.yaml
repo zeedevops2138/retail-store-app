@@ -66,9 +66,9 @@ app:
 dynamodb:
   create: false
   image:
-    repository: 220755213644.dkr.ecr.us-west-2.amazonaws.com/retail-store-cart
+    repository: public.ecr.aws/aws-dynamodb-local/aws-dynamodb-local
     pullPolicy: IfNotPresent
-    tag: "115aa7f"
+    tag: "1.25.1"
   service:
     type: ClusterIP
     port: 8000

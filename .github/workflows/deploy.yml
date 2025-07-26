@@ -165,7 +165,7 @@ jobs:
             
             # Show that infrastructure images are preserved
             echo "🔒 Infrastructure images preserved:"
-            grep -A1 "repository:" "${VALUES_FILE}" | grep -E "(mysql|redis|postgres|rabbitmq|dynamodb)" || echo "No infrastructure images found"
+            grep -A1 "repository:" "${VALUES_FILE}" | grep -E "(mysql|redis|postgres|rabbitmq|dynamodb-local)" || echo "No infrastructure images found"
           else
             echo "❌ Update failed - restoring backup"
             mv "${VALUES_FILE}.backup" "${VALUES_FILE}"
