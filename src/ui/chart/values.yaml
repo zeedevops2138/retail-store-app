@@ -96,9 +96,9 @@ ingress:
   tls:
     - secretName: tls-secret
       hosts:
-        - retail-store.iemafzalhassan.in
+        - retail-store.trainwithshubham.com
   hosts:
-    - retail-store.iemafzalhassan.in
+    - retail-store.trainwithshubham.com
 ingresses: []
 # - name: default
 #   className: ""
@@ -109,7 +109,7 @@ ingresses: []
 # Cert Manager Configuration
 certManager:
   createClusterIssuer: true
-  email: iemafzalhassan@gmail.com
+  email: trainwithshubham@gmail.com
   clusterIssuerName: "letsencrypt-prod"
   server: "https://acme-v02.api.letsencrypt.org/directory"
   privateKeySecretName: "letsencrypt-prod-key"
