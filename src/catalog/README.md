@@ -1,6 +1,6 @@
 # AWS Containers Retail Sample - Catalog Service
 
-<!-- GitOps Test: Testing fixed JSON matrix format -->
+<!-- GitOps Test: Testing deploy.yml workflow -->
 
 | Language | Persistence |
 | -------- | ----------- |
