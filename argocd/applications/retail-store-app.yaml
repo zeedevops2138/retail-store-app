@@ -16,7 +16,7 @@ spec:
         - values.yaml
       parameters:
         - name: global.imageRegistry
-          value: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          value: public.ecr.aws/aws-containers/retail-store-sample-ui:1.2.2
   destination:
     server: https://kubernetes.default.svc
     namespace: retail-store
