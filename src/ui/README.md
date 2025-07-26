@@ -1,6 +1,6 @@
 # AWS Containers Retail Sample - UI Service
 
-<!-- GitOps Initial Setup: First ECR push - UI Service -->
+<!-- GitOps Test: Testing deploy-simple.yml workflow -->
 
 | Language | Persistence |
 | -------- | ----------- |
