@@ -1,6 +1,6 @@
 # AWS Containers Retail Sample - Cart Service
 
-<!-- GitOps Initial Setup: First ECR push -->
+<!-- GitOps Test: Multi-service deploy test - Cart -->
 
 | Language | Persistence     |
 | -------- | --------------- |

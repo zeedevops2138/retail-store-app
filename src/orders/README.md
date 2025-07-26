@@ -1,9 +1,10 @@
 # AWS Containers Retail Sample - Orders Service
 
-<!-- GitOps Initial Setup: First ECR push -->
-<!-- Ensure orders service is detected and built -->
+<!-- GitOps Test: Multi-service deploy test - Orders -->
 
 | Language | Persistence |
+| -------- | ----------- |
+| Java     | MySQL       |
 | -------- | ----------- |
 | Java     | MySQL       |
 
