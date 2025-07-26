@@ -6,7 +6,7 @@ replicaCount: 1
 image:
   repository: 220755213644.dkr.ecr.us-west-2.amazonaws.com/retail-store-cart
   pullPolicy: Always
-  tag: "c8ce6bf"
+  tag: "4a6b314"
 imagePullSecrets:
   - name: regcred
 nameOverride: ""
@@ -66,9 +66,9 @@ app:
 dynamodb:
   create: false
   image:
-    repository: public.ecr.aws/aws-containers/retail-store-sample-cart
+    repository: 220755213644.dkr.ecr.us-west-2.amazonaws.com/retail-store-cart
     pullPolicy: IfNotPresent
-    tag: "1.2.2"
+    tag: "4a6b314"
   service:
     type: ClusterIP
     port: 8000
