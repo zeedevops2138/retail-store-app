@@ -79,9 +79,9 @@ app:
 postgresql:
   create: false
   image:
-    repository: 220755213644.dkr.ecr.us-west-2.amazonaws.com/retail-store-orders
+    repository: public.ecr.aws/docker/library/postgres
     pullPolicy: IfNotPresent
-    tag: "4a6b314"
+    tag: "16.1"
   service:
     type: ClusterIP
     port: 5432
@@ -100,9 +100,9 @@ postgresql:
 rabbitmq:
   create: false
   image:
-    repository: 220755213644.dkr.ecr.us-west-2.amazonaws.com/retail-store-orders
+    repository: "public.ecr.aws/docker/library/rabbitmq"
     pullPolicy: IfNotPresent
-    tag: "4a6b314"
+    tag: "3-management"
   service:
     type: ClusterIP
     amqp:
