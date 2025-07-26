@@ -6,7 +6,7 @@ replicaCount: 1
 image:
   repository: 220755213644.dkr.ecr.us-west-2.amazonaws.com/retail-store-checkout
   pullPolicy: Always
-  tag: "4a6b314"
+  tag: "4e06597"
 imagePullSecrets:
   - name: regcred
 nameOverride: ''
@@ -67,9 +67,9 @@ app:
 redis:
   create: false
   image:
-    repository: redis
+    repository: 220755213644.dkr.ecr.us-west-2.amazonaws.com/retail-store-checkout
     pullPolicy: IfNotPresent
-    tag: '6.0-alpine'
+    tag: "4e06597"
   service:
     type: ClusterIP
     port: 6379
