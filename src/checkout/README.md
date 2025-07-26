@@ -1,6 +1,6 @@
 # AWS Containers Retail Sample - Checkout Service
 
-<!-- GitOps Initial Setup: First ECR push -->
+<!-- GitOps Test: Testing improved change detection workflow -->
 
 | Language | Persistence |
 | -------- | ----------- |
