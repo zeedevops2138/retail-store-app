@@ -1,5 +1,7 @@
 # AWS Containers Retail Sample - Cart Service
 
+<!-- GitOps Initial Setup: First ECR push -->
+
 | Language | Persistence     |
 | -------- | --------------- |
 | Java     | Amazon DynamoDB |

@@ -1,5 +1,7 @@
 # AWS Containers Retail Sample - Checkout Service
 
+<!-- GitOps Initial Setup: First ECR push -->
+
 | Language | Persistence |
 | -------- | ----------- |
 | Node     | Redis       |
