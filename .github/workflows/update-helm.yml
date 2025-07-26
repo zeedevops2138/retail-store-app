@@ -1,3 +1,5 @@
+# Update Helm Charts Workflow - GitOps Automation
+# This workflow updates Helm chart values with new Docker image tags
 name: Update Helm Charts
 
 on:
