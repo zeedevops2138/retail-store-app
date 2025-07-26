@@ -1,6 +1,7 @@
 # AWS Containers Retail Sample - Orders Service
 
 <!-- GitOps Initial Setup: First ECR push -->
+<!-- Ensure orders service is detected and built -->
 
 | Language | Persistence |
 | -------- | ----------- |
