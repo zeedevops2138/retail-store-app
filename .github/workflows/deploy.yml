@@ -127,6 +127,17 @@ jobs:
           echo "📝 Updating Helm values for ${SERVICE}"
           echo "   Repository: ${ECR_REPO}"
           echo "   Tag: ${TAG}"
+          echo "   File: ${VALUES_FILE}"
+          
+          # Validate file exists
+          if [[ ! -f "${VALUES_FILE}" ]]; then
+            echo "❌ Values file not found: ${VALUES_FILE}"
+            exit 1
+          fi
+          
+          # Show before state
+          echo "📋 Before update (main service image):"
+          grep -A3 "^image:" "${VALUES_FILE}" | head -4 || echo "No main image section found"
           
           # Create a backup
           cp "${VALUES_FILE}" "${VALUES_FILE}.backup"
@@ -146,10 +157,23 @@ jobs:
           { print }
           ' "${VALUES_FILE}.backup" > "${VALUES_FILE}"
           
+          # Validate the update worked
+          if grep -q "${ECR_REPO}" "${VALUES_FILE}" && grep -q "\"${TAG}\"" "${VALUES_FILE}"; then
+            echo "✅ Successfully updated ${VALUES_FILE}"
+            echo "📋 After update (main service image):"
+            grep -A3 "^image:" "${VALUES_FILE}" | head -4
+            
+            # Show that infrastructure images are preserved
+            echo "🔒 Infrastructure images preserved:"
+            grep -A1 "repository:" "${VALUES_FILE}" | grep -E "(mysql|redis|postgres|rabbitmq|dynamodb)" || echo "No infrastructure images found"
+          else
+            echo "❌ Update failed - restoring backup"
+            mv "${VALUES_FILE}.backup" "${VALUES_FILE}"
+            exit 1
+          fi
+          
           # Remove backup
           rm "${VALUES_FILE}.backup"
-          
-          echo "✅ Updated ${VALUES_FILE} (service image only)"
 
       - name: Commit Helm changes for ${{ matrix.service }}
         run: |
