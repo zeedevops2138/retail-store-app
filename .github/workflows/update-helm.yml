@@ -1,60 +1,65 @@
 name: Update Helm Charts
 
 on:
-  workflow_run:
-    workflows: ["Build and Push Images"]
-    types:
-      - completed
-    branches: [ gitops ]
   workflow_dispatch:
     inputs:
       service:
         description: 'Service to update (ui, catalog, cart, checkout, orders, or all)'
         required: true
         default: 'all'
+        type: choice
+        options:
+          - all
+          - ui
+          - catalog
+          - cart
+          - checkout
+          - orders
       image_tag:
-        description: 'Image tag to use'
+        description: 'Image tag to use (leave empty for latest from ECR)'
         required: false
+        type: string
+      trigger_source:
+        description: 'Source that triggered this workflow'
+        required: false
+        default: 'manual'
+        type: string
+      build_commit:
+        description: 'Commit SHA from build workflow'
+        required: false
+        type: string
+      changed_services:
+        description: 'Services that were changed in build'
+        required: false
+        type: string
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
-  check-build-success:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_run'
-    outputs:
-      should_update: ${{ steps.check.outputs.should_update }}
-    steps:
-      - name: Check if build was successful
-        id: check
-        run: |
-          echo "Build workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
-          if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
-            echo "should_update=true" >> $GITHUB_OUTPUT
-            echo "✅ Build was successful, proceeding with Helm updates"
-          else
-            echo "should_update=false" >> $GITHUB_OUTPUT
-            echo "❌ Build failed, skipping Helm updates"
-          fi
-
   update-helm:
     runs-on: ubuntu-latest
-    needs: [check-build-success]
-    if: |
-      always() && (
-        (github.event_name == 'workflow_run' && needs.check-build-success.outputs.should_update == 'true') ||
-        github.event_name == 'workflow_dispatch'
-      )
     strategy:
       matrix:
         service: [ui, catalog, cart, checkout, orders]
       fail-fast: false
+    permissions:
+      contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+
+      - name: Workflow Context
+        run: |
+          echo "## 🔄 Helm Update Context" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger Source:** ${{ github.event.inputs.trigger_source || 'manual' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Service:** ${{ github.event.inputs.service || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Commit:** ${{ github.event.inputs.build_commit || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Changed Services:** ${{ github.event.inputs.changed_services || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -67,12 +72,18 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Skip if not target service
+        if: github.event.inputs.service != 'all' && github.event.inputs.service != matrix.service
+        run: |
+          echo "⏭️ Skipping ${{ matrix.service }} - only updating ${{ github.event.inputs.service }}"
+          exit 0
+
       - name: Get latest image tag
         id: get-tag
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.image_tag }}" ]; then
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
             TAG="${{ github.event.inputs.image_tag }}"
-            echo "Using manual tag: $TAG"
+            echo "Using provided tag: $TAG"
           else
             # Get the latest tag from ECR
             REPO="retail-store-${{ matrix.service }}"
@@ -80,12 +91,16 @@ jobs:
             
             # Check if repository exists
             if aws ecr describe-repositories --repository-names $REPO --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+              # Get latest non-'latest' tag, sorted by push date
               TAG=$(aws ecr describe-images --repository-name $REPO \
                 --query 'sort_by(imageDetails,&imagePushedAt)[-1].imageTags[?!contains(@, `latest`)][0]' \
-                --output text 2>/dev/null || echo "latest")
+                --output text 2>/dev/null)
               
-              if [ "$TAG" == "None" ] || [ -z "$TAG" ]; then
-                TAG="latest"
+              if [ "$TAG" == "None" ] || [ -z "$TAG" ] || [ "$TAG" == "null" ]; then
+                # Fallback to any tag if no non-latest tags found
+                TAG=$(aws ecr describe-images --repository-name $REPO \
+                  --query 'sort_by(imageDetails,&imagePushedAt)[-1].imageTags[0]' \
+                  --output text 2>/dev/null || echo "latest")
               fi
               echo "Found latest tag: $TAG"
             else
@@ -94,12 +109,6 @@ jobs:
             fi
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-      - name: Skip if manual dispatch with specific service
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.service != 'all' && github.event.inputs.service != matrix.service
-        run: |
-          echo "Skipping ${{ matrix.service }} - only updating ${{ github.event.inputs.service }}"
-          exit 0
 
       - name: Update Helm values
         run: |
@@ -113,46 +122,63 @@ jobs:
             exit 1
           fi
           
-          echo "Updating $SERVICE with:"
+          echo "🔄 Updating $SERVICE with:"
           echo "  Repository: ${ECR_REGISTRY}/retail-store-${SERVICE}"
           echo "  Tag: ${TAG}"
           
-          # Backup current values
+          # Backup current values for comparison
           cp "$VALUES_FILE" "${VALUES_FILE}.backup"
           
-          # Update repository and tag
-          sed -i "s|repository:.*|repository: ${ECR_REGISTRY}/retail-store-${SERVICE}|g" $VALUES_FILE
-          sed -i "s|tag:.*|tag: \"${TAG}\"|g" $VALUES_FILE
+          # Update repository and tag using more precise sed patterns
+          sed -i.tmp "s|repository:.*|repository: ${ECR_REGISTRY}/retail-store-${SERVICE}|g" "$VALUES_FILE"
+          sed -i.tmp "s|tag:.*|tag: \"${TAG}\"|g" "$VALUES_FILE"
+          rm -f "${VALUES_FILE}.tmp"
           
           # Show what changed
           echo "=== Changes made ==="
-          diff "${VALUES_FILE}.backup" "$VALUES_FILE" || true
-          rm "${VALUES_FILE}.backup"
+          if diff "${VALUES_FILE}.backup" "$VALUES_FILE" >/dev/null 2>&1; then
+            echo "No changes needed - values already up to date"
+          else
+            diff "${VALUES_FILE}.backup" "$VALUES_FILE" || true
+          fi
+          rm -f "${VALUES_FILE}.backup"
           
           echo "✅ Updated $VALUES_FILE"
 
       - name: Commit changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "gitops-automation@github.com"
+          git config --local user.name "GitOps Automation"
           
           SERVICE="${{ matrix.service }}"
           TAG="${{ steps.get-tag.outputs.tag }}"
+          TRIGGER_SOURCE="${{ github.event.inputs.trigger_source || 'manual' }}"
           
           if git diff --quiet src/${SERVICE}/chart/values.yaml; then
-            echo "No changes to commit for $SERVICE"
+            echo "📝 No changes to commit for $SERVICE - values already current"
           else
             git add src/${SERVICE}/chart/values.yaml
-            git commit -m "🔄 Update $SERVICE Helm chart to $TAG
-
-            - Service: $SERVICE
-            - Image tag: $TAG
-            - Triggered by: ${{ github.event_name }}
-            - Updated by: GitOps automation"
             
-            # Push with retry logic
+            # Create detailed commit message
+            COMMIT_MSG="🔄 Update $SERVICE Helm chart to $TAG
+
+- Service: $SERVICE
+- Image tag: $TAG
+- Trigger: $TRIGGER_SOURCE"
+            
+            if [ -n "${{ github.event.inputs.build_commit }}" ]; then
+              COMMIT_MSG="$COMMIT_MSG
+- Build commit: ${{ github.event.inputs.build_commit }}"
+            fi
+            
+            COMMIT_MSG="$COMMIT_MSG
+- Updated by: GitOps automation"
+            
+            git commit -m "$COMMIT_MSG"
+            
+            # Push with enhanced retry logic
             for i in {1..5}; do
-              if git push; then
+              if git push origin gitops; then
                 echo "✅ Successfully pushed changes for $SERVICE"
                 break
               else
@@ -162,26 +188,26 @@ jobs:
               fi
               
               if [ $i -eq 5 ]; then
-                echo "❌ Failed to push after 5 attempts"
+                echo "❌ Failed to push after 5 attempts for $SERVICE"
                 exit 1
               fi
             done
           fi
 
-  notify-helm-update:
+  notify-completion:
     runs-on: ubuntu-latest
     needs: [update-helm]
     if: always()
     steps:
       - name: Helm Update Summary
         run: |
-          echo "## 🔄 Helm Charts Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎯 Helm Charts Update Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event.inputs.trigger_source || 'manual' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Service:** ${{ github.event.inputs.service || 'all' }}" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ github.event_name }}" == "workflow_run" ]; then
-            echo "**Build Workflow:** ${{ github.event.workflow_run.name }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Build Status:** ${{ github.event.workflow_run.conclusion }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ github.event.inputs.build_commit }}" ]; then
+            echo "**Build Commit:** ${{ github.event.inputs.build_commit }}" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "**Branch:** gitops" >> $GITHUB_STEP_SUMMARY
@@ -189,13 +215,14 @@ jobs:
           
           if [ "${{ needs.update-helm.result }}" == "success" ]; then
             echo "✅ **Status:** Helm charts updated successfully" >> $GITHUB_STEP_SUMMARY
-            echo "**Services updated:** ui, catalog, cart, checkout, orders" >> $GITHUB_STEP_SUMMARY
+            echo "**Services processed:** ui, catalog, cart, checkout, orders" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Status:** Some Helm updates failed" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ArgoCD will detect the updated Helm charts" >> $GITHUB_STEP_SUMMARY
-          echo "- New deployments will use the updated image tags" >> $GITHUB_STEP_SUMMARY
-          echo "- Monitor your Kubernetes cluster for rollout status" >> $GITHUB_STEP_SUMMARY
+          echo "**GitOps Flow:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Docker images built and pushed to ECR" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ Helm charts updated with new image tags" >> $GITHUB_STEP_SUMMARY
+          echo "3. 🔄 ArgoCD will detect changes and deploy automatically" >> $GITHUB_STEP_SUMMARY
+          echo "4. 📊 Monitor deployment status in your Kubernetes cluster" >> $GITHUB_STEP_SUMMARY
