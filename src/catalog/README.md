@@ -1,5 +1,7 @@
 # AWS Containers Retail Sample - Catalog Service
 
+<!-- GitOps Test: Testing fixed JSON matrix format -->
+
 | Language | Persistence |
 | -------- | ----------- |
 | Go       | MySQL       |
