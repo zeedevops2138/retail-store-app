@@ -438,10 +438,7 @@ Password: <output of previous command>
 
 Once ArgoCD is deployed, you can access the web interface:
 
-<div align="center">
-  <img src="./docs/images/argocd-ui.png" alt="ArgoCD UI Dashboard" width="800"/>
-  <p><em>ArgoCD UI showing deployed retail store applications</em></p>
-</div>
+![ArgoCD UI Dashboard](./docs/images/argocd-ui.png)
 
 The ArgoCD UI provides:
 - **Application Status**: Real-time sync status of all services
