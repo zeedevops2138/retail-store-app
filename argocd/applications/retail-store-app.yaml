@@ -9,14 +9,11 @@ spec:
   project: retail-store
   source:
     repoURL: https://github.com/LondheShubham153/retail-store-sample-app
-    targetRevision: main
+    targetRevision: gitops
     path: src/app
     helm:
       valueFiles:
         - values.yaml
-      parameters:
-        - name: global.imageRegistry
-          value: public.ecr.aws/aws-containers/retail-store-sample-ui:1.2.2
   destination:
     server: https://kubernetes.default.svc
     namespace: retail-store
@@ -33,4 +30,4 @@ spec:
       backoff:
         duration: 5s
         factor: 2
-        maxDuration: 3m 
+        maxDuration: 3m
