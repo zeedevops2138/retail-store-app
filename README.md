@@ -24,6 +24,8 @@ This is a sample application designed to illustrate various concepts related to 
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Branch Strategy](#branch-strategy)
 - [Getting Started](#getting-started)
 - [GitOps Workflow](#gitops-workflow)
 - [EKS Auto Mode](#eks-auto-mode)
@@ -56,6 +58,38 @@ The Infrastructure Architecture follows cloud-native best practices:
 - **GitOps**: Infrastructure and application deployment managed through Git
 - **Infrastructure as Code**: All AWS resources defined using Terraform
 - **CI/CD**: Automated build and deployment pipelines with GitHub Actions
+
+## Quick Start
+
+**Want to deploy immediately?** Follow these steps for a basic deployment:
+
+1. **Install Prerequisites**: AWS CLI, Terraform, kubectl, Docker, Helm
+2. **Configure AWS**: `aws configure` with appropriate credentials
+3. **Clone Repository**: `git clone https://github.com/LondheShubham153/retail-store-sample-app.git`
+4. **Deploy Infrastructure**: Run Terraform in two phases (see [Getting Started](#getting-started))
+5. **Access Application**: Get load balancer URL and browse the retail store
+
+**Need advanced GitOps workflow?** See [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md) for automated CI/CD setup.
+
+## Branch Strategy
+
+This repository uses a **dual-branch approach** for different deployment scenarios:
+
+### 🌐 **Public Application (Main Branch)**
+- **Purpose**: Simple deployment with public images
+- **Images**: Public ECR (stable versions like v1.2.2)
+- **Deployment**: Manual control with umbrella chart
+- **Updates**: Manual only
+- **Best for**: Demos, learning, quick testing, simple deployments
+
+### 🏭 **Production (GitOps Branch)**
+- **Purpose**: Full production workflow with CI/CD pipeline
+- **Images**: Private ECR (auto-updated with commit hashes)
+- **Deployment**: Automated via GitHub Actions
+- **Updates**: Automatic on code changes
+- **Best for**: Production environments, automated workflows, enterprise deployments
+
+> **📚 For detailed branching strategy, CI/CD setup, and advanced workflows, see [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md)**
 
 ## Prerequisites
 
@@ -224,97 +258,29 @@ cd retail-store-sample-app
 ```
 
 > [!IMPORTANT]
-> ### Step 3: Initial Deployment with Public Images:
+> ### Step 3: Choose Your Deployment Strategy
 >
-> <details>
->  <summary><strong>Click to Read:</strong> First-Time Deployment Instructions</summary>
+> **For Public Application (Main Branch):**
+> - Uses stable public ECR images (v1.2.2)
+> - Manual deployment control
+> - No GitHub Actions required
+> - Skip to Step 4 - infrastructure is ready
 >
->  * On the initial deploy, ArgoCD is configured to use public container images as specified in this guide.
->  * After this first deployment, the GitHub Actions workflow will run automatically, updating the `values.yaml` files to use your private ECR images and tags for all future deployments.
-> </details>
-> 
-> ### Automatic Update Instructions:
-> 
-> ```sh
-> ./scripts/update-helm-values.sh
-> ```
-> 
-> ### Manual Update Instructions:
-> 
-> For the initial deployment, you must update the `values.yaml` file for each of the five services to use the public ECR images.
-> 
-> #### **Service-Specific Configuration**
-> 
-> <details>
-> <summary><strong>1. Cart Service</strong></summary>
-> 
-> Update `src/cart/chart/values.yaml` to match the following content:
-> ```yaml
-> # ... other values
-> image:
->   repository: public.ecr.aws/aws-containers/retail-store-sample-cart
->   pullPolicy: Always
->   tag: "1.2.2"
-> # ... other values
-> ```
-> </details>
-> 
-> <details>
-> <summary><strong>2. Catalog Service</strong></summary>
-> 
-> Update `src/catalog/chart/values.yaml` to match the following content:
-> ```yaml
-> # ... other values
-> image:
->   repository: public.ecr.aws/aws-containers/retail-store-sample-catalog
->   pullPolicy: Always
->   tag: "1.2.2"
-> # ... other values
-> ```
-> </details>
-> 
-> <details>
-> <summary><strong>3. Checkout Service</strong></summary>
+> **For Production (GitOps Branch):**
+> - Uses private ECR with automated CI/CD
+> - Requires GitHub Actions setup
+> - See [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md) for complete setup
 >
-> Update `src/checkout/chart/values.yaml` to match the following content:
-> ```yaml
-> # ... other values
-> image:
->   repository: public.ecr.aws/aws-containers/retail-store-sample-checkout
->   pullPolicy: Always
->   tag: "1.2.2"
-> # ... other values
-> ```
-> </details>
+> ### GitHub Actions Setup (Production Branch Only):
 > 
-> <details>
-> <summary><strong>4. Orders Service</strong></summary>
+> If using the Production branch, configure these secrets in your GitHub repository:
 > 
-> Update `src/orders/chart/values.yaml` to match the following content:
-> ```yaml
-> # ... other values
-> image:
->   repository: public.ecr.aws/aws-containers/retail-store-sample-orders
->   pullPolicy: Always
->   tag: "1.2.2"
-> # ... other values
-> ```
-> </details>
-> 
-> <details>
-> <summary><strong>5. UI Service</strong></summary>
->
-> Update `src/ui/chart/values.yaml` to match the following content:
-> ```yaml
-> # ... other values
-> image:
->   repository: public.ecr.aws/aws-containers/retail-store-sample-ui
->   pullPolicy: Always
->   tag: "1.2.2"
-> # ... other values
-> ```
-> </details>
->
+> | Secret Name           | Value                              |
+> |-----------------------|------------------------------------|
+> | `AWS_ACCESS_KEY_ID`   | `Your AWS Access Key ID`           |
+> | `AWS_SECRET_ACCESS_KEY` | `Your AWS Secret Access Key`     |
+> | `AWS_REGION`          | `region-name`                       |
+> | `AWS_ACCOUNT_ID`        | `your-account-id` |
 
 
 ### Step 4. Deploy Infrastructure with Terraform:
@@ -358,7 +324,9 @@ This deploys:
 - NGINX Ingress Controller
 - Cert Manager for SSL certificates
 
-### Step 7: GitHub Actions:
+### Step 7: GitHub Actions (Production Branch Only)
+
+> **Note**: This step is only required if you're using the **Production branch** for automated deployments. Skip this step if using the **Public Application branch** for simple deployment.
 
 For GitHub Actions, first configure secrets so the pipelines can be automatically triggered:
 
@@ -475,6 +443,34 @@ terraform destroy --auto-approve
 > Only ECR Repositories you need to Delete it from AWS Console Manually.
 
 
+
+## Troubleshooting
+
+### Common Issues
+
+#### **Image Pull Errors**
+```
+Error: Failed to pull image "123456789012.dkr.ecr.us-west-2.amazonaws.com/retail-store-ui:abc1234"
+```
+**Solutions**:
+1. Ensure you're using the correct branch for your deployment strategy
+2. For Production branch: Check GitHub Actions completed successfully
+3. For Public Application branch: Verify you're using public ECR images
+4. Check AWS credentials and ECR permissions
+
+#### **GitHub Actions Not Triggering**
+**Solutions**:
+1. Ensure changes are in `src/` directory
+2. Verify you're on the `production` branch (gitops)
+3. Check GitHub Actions is enabled in repository settings
+4. Review [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md) for detailed setup
+
+### Getting Help
+
+- **Basic deployment issues**: Check this README
+- **Advanced GitOps issues**: See [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md)
+- **Infrastructure issues**: Review Terraform logs
+- **Application issues**: Check ArgoCD UI and kubectl logs
 
 ## License
 
