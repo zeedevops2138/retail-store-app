@@ -1,5 +1,7 @@
 # AWS Containers Retail Sample - UI Service
 
+<!-- GitOps Test: Trigger build workflow -->
+
 | Language | Persistence |
 | -------- | ----------- |
 | Java     | N/A         |
