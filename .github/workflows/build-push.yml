@@ -30,17 +30,29 @@ jobs:
           for service in "${SERVICES[@]}"; do
             if git diff --name-only HEAD~1 HEAD | grep -q "^src/$service/"; then
               CHANGED_SERVICES+=("$service")
+              echo "✅ Changes detected in $service"
             fi
           done
           
           # If no changes or manual trigger, build all
           if [ ${#CHANGED_SERVICES[@]} -eq 0 ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Building all services"
             CHANGED_SERVICES=("${SERVICES[@]}")
           fi
           
-          # Create matrix
-          MATRIX=$(printf '%s\n' "${CHANGED_SERVICES[@]}" | jq -R . | jq -s '{service: .}')
+          # Create matrix - fix JSON format
+          SERVICES_JSON="["
+          for i in "${!CHANGED_SERVICES[@]}"; do
+            if [ $i -gt 0 ]; then
+              SERVICES_JSON+=","
+            fi
+            SERVICES_JSON+="\"${CHANGED_SERVICES[$i]}\""
+          done
+          SERVICES_JSON+="]"
+          
+          MATRIX="{\"service\":$SERVICES_JSON}"
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "Generated matrix: $MATRIX"
 
   build-push:
     runs-on: ubuntu-latest
