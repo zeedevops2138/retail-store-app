@@ -434,20 +434,29 @@ Username: admin
 
 Password: <output of previous command>
 
+### Step 10: Access ArgoCD UI
 
+Once ArgoCD is deployed, you can access the web interface:
 
-### Argocd UI
+<div align="center">
+  <img src="./docs/images/argocd-ui.png" alt="ArgoCD UI Dashboard" width="800"/>
+  <p><em>ArgoCD UI showing deployed retail store applications</em></p>
+</div>
 
-<img width="2915" height="1755" alt="image" src="https://github.com/user-attachments/assets/20c00b41-bc87-4038-b06f-56867340a269" />
+The ArgoCD UI provides:
+- **Application Status**: Real-time sync status of all services
+- **Resource View**: Detailed view of Kubernetes resources
+- **Sync Operations**: Manual sync and rollback capabilities
+- **Health Monitoring**: Application and resource health status
 
+### Step 11: Monitor Application Deployment
 
-### Step 9: Monitor application deployment
-```
+```bash
 kubectl get pods -n retail-store
 kubectl get ingress -n retail-store
 ```
 
-### Step 11: Cleanup:
+### Step 12: Cleanup
 
 To delete all resources created by Terraform:
 
