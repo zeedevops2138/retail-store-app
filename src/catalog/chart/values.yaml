@@ -4,9 +4,9 @@
 
 replicaCount: 1
 image:
-  repository: 220755213644.dkr.ecr.us-west-2.amazonaws.com/retail-store-catalog
+  repository: public.ecr.aws/aws-containers/retail-store-sample-catalog
   pullPolicy: Always
-  tag: "0fd57ea"
+  tag: "1.2.2"
 imagePullSecrets:
   - name: regcred
 nameOverride: ""
@@ -70,9 +70,9 @@ app:
 mysql:
   create: false
   image:
-    repository: 220755213644.dkr.ecr.us-west-2.amazonaws.com/retail-store-catalog
+    repository: public.ecr.aws/docker/library/mysql
     pullPolicy: IfNotPresent
-    tag: "0fd57ea"
+    tag: "8.0"
   service:
     type: ClusterIP
     port: 3306
