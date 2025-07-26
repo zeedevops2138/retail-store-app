@@ -1,13 +1,13 @@
-# Retail Store Sample App - GitOps with EKS Auto Mode
+# Retail Store Sample App - GitOps with Amazon EKS Auto Mode
 
 ![Banner](./docs/images/banner.png)
 
 <div align="center">
   <div align="center">
 
-[![Stars](https://img.shields.io/github/stars/iemafzalhassan/retail-store-sample-app)](Stars)
-![GitHub License](https://img.shields.io/github/license/iemafzalhassan/retail-store-sample-app?color=green)
-![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiemafzalhassan%2Fretail-store-sample-app%2Frefs%2Fheads%2Fmain%2F.release-please-manifest.json&query=%24%5B%22.%22%5D&label=release)
+[![Stars](https://img.shields.io/github/stars/LondheShubham153/retail-store-sample-app)](Stars)
+![GitHub License](https://img.shields.io/github/license/LondheShubham153/retail-store-sample-app?color=green)
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%LondheShubham153%2Fretail-store-sample-app%2Frefs%2Fheads%2Fmain%2F.release-please-manifest.json&query=%24%5B%22.%22%5D&label=release)
 
 
   </div>
@@ -100,6 +100,11 @@ aws --version
         # Example for a downloaded file
         unzip terraform_1.9.0_linux_amd64.zip
         sudo mv terraform /usr/local/bin/
+        ```
+        or
+        ```sh
+        # Example for macOS
+        brew install terraform
         ```
       3.  **Verify the Installation**:
      
@@ -214,7 +219,7 @@ aws configure
 ### Step 2. Clone the Repository:
 
 ```sh
-git clone https://github.com/iemafzalhassan/retail-store-sample-app.git
+git clone https://github.com/LondheShubham153/retail-store-sample-app.git
 cd retail-store-sample-app
 ```
 
@@ -310,10 +315,9 @@ cd retail-store-sample-app
 > ```
 > </details>
 >
-> ### Step 4: Comment out `.github/workflows/update-helm-values.yml`:
 
 
-### Step 5. Deploy Infrastructure with Terraform:
+### Step 4. Deploy Infrastructure with Terraform:
 
 The deployment is split into two phases for better control:
 
@@ -323,9 +327,9 @@ The deployment is split into two phases for better control:
 In Phase 1: Terraform Initialises and creates resources within the retail_app_eks module. 
 
 ```sh
-cd retail-store-sample-app/terraform/eks/default/
+cd retail-store-sample-app/terraform/
 terraform init
-terraform apply -target=module.retail_app_eks --auto-approve
+terraform apply -target=module.retail_app_eks -target=module.vpc --auto-approve
 ```
 
 <img width="1205" height="292" alt="image" src="https://github.com/user-attachments/assets/6f1e407e-4a4e-4a4c-9bdf-0c9b89681368" />
@@ -334,7 +338,6 @@ terraform apply -target=module.retail_app_eks --auto-approve
 This creates the core infrastructure, including:
 - VPC with public and private subnets
 - Amazon EKS cluster with Auto Mode enabled
-- Bastion host for secure cluster access
 - Security groups and IAM roles
   
 
