@@ -20,9 +20,32 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
+  check-build-success:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run'
+    outputs:
+      should_update: ${{ steps.check.outputs.should_update }}
+    steps:
+      - name: Check if build was successful
+        id: check
+        run: |
+          echo "Build workflow conclusion: ${{ github.event.workflow_run.conclusion }}"
+          if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
+            echo "should_update=true" >> $GITHUB_OUTPUT
+            echo "✅ Build was successful, proceeding with Helm updates"
+          else
+            echo "should_update=false" >> $GITHUB_OUTPUT
+            echo "❌ Build failed, skipping Helm updates"
+          fi
+
   update-helm:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    needs: [check-build-success]
+    if: |
+      always() && (
+        (github.event_name == 'workflow_run' && needs.check-build-success.outputs.should_update == 'true') ||
+        github.event_name == 'workflow_dispatch'
+      )
     strategy:
       matrix:
         service: [ui, catalog, cart, checkout, orders]
@@ -49,15 +72,28 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.image_tag }}" ]; then
             TAG="${{ github.event.inputs.image_tag }}"
+            echo "Using manual tag: $TAG"
           else
             # Get the latest tag from ECR
             REPO="retail-store-${{ matrix.service }}"
-            TAG=$(aws ecr describe-images --repository-name $REPO \
-              --query 'sort_by(imageDetails,&imagePushedAt)[-1].imageTags[0]' \
-              --output text 2>/dev/null || echo "latest")
+            echo "Checking ECR repository: $REPO"
+            
+            # Check if repository exists
+            if aws ecr describe-repositories --repository-names $REPO --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+              TAG=$(aws ecr describe-images --repository-name $REPO \
+                --query 'sort_by(imageDetails,&imagePushedAt)[-1].imageTags[?!contains(@, `latest`)][0]' \
+                --output text 2>/dev/null || echo "latest")
+              
+              if [ "$TAG" == "None" ] || [ -z "$TAG" ]; then
+                TAG="latest"
+              fi
+              echo "Found latest tag: $TAG"
+            else
+              echo "⚠️ ECR repository $REPO not found, skipping ${{ matrix.service }}"
+              exit 0
+            fi
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "Using tag: $TAG for ${{ matrix.service }}"
 
       - name: Skip if manual dispatch with specific service
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.service != 'all' && github.event.inputs.service != matrix.service
@@ -77,13 +113,23 @@ jobs:
             exit 1
           fi
           
+          echo "Updating $SERVICE with:"
+          echo "  Repository: ${ECR_REGISTRY}/retail-store-${SERVICE}"
+          echo "  Tag: ${TAG}"
+          
+          # Backup current values
+          cp "$VALUES_FILE" "${VALUES_FILE}.backup"
+          
           # Update repository and tag
           sed -i "s|repository:.*|repository: ${ECR_REGISTRY}/retail-store-${SERVICE}|g" $VALUES_FILE
           sed -i "s|tag:.*|tag: \"${TAG}\"|g" $VALUES_FILE
           
+          # Show what changed
+          echo "=== Changes made ==="
+          diff "${VALUES_FILE}.backup" "$VALUES_FILE" || true
+          rm "${VALUES_FILE}.backup"
+          
           echo "✅ Updated $VALUES_FILE"
-          echo "Repository: ${ECR_REGISTRY}/retail-store-${SERVICE}"
-          echo "Tag: ${TAG}"
 
       - name: Commit changes
         run: |
@@ -101,17 +147,55 @@ jobs:
 
             - Service: $SERVICE
             - Image tag: $TAG
+            - Triggered by: ${{ github.event_name }}
             - Updated by: GitOps automation"
             
             # Push with retry logic
-            for i in {1..3}; do
+            for i in {1..5}; do
               if git push; then
                 echo "✅ Successfully pushed changes for $SERVICE"
                 break
               else
-                echo "⚠️ Push failed, attempt $i/3. Pulling latest changes..."
-                git pull --rebase
-                sleep 2
+                echo "⚠️ Push failed, attempt $i/5. Pulling latest changes..."
+                git pull --rebase origin gitops
+                sleep $((i * 2))
+              fi
+              
+              if [ $i -eq 5 ]; then
+                echo "❌ Failed to push after 5 attempts"
+                exit 1
               fi
             done
           fi
+
+  notify-helm-update:
+    runs-on: ubuntu-latest
+    needs: [update-helm]
+    if: always()
+    steps:
+      - name: Helm Update Summary
+        run: |
+          echo "## 🔄 Helm Charts Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            echo "**Build Workflow:** ${{ github.event.workflow_run.name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Build Status:** ${{ github.event.workflow_run.conclusion }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "**Branch:** gitops" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.update-helm.result }}" == "success" ]; then
+            echo "✅ **Status:** Helm charts updated successfully" >> $GITHUB_STEP_SUMMARY
+            echo "**Services updated:** ui, catalog, cart, checkout, orders" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Some Helm updates failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ArgoCD will detect the updated Helm charts" >> $GITHUB_STEP_SUMMARY
+          echo "- New deployments will use the updated image tags" >> $GITHUB_STEP_SUMMARY
+          echo "- Monitor your Kubernetes cluster for rollout status" >> $GITHUB_STEP_SUMMARY
