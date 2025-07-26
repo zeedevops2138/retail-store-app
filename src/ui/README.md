@@ -1,6 +1,6 @@
 # AWS Containers Retail Sample - UI Service
 
-<!-- GitOps Test: Trigger build workflow -->
+<!-- GitOps Initial Setup: First ECR push - UI Service -->
 
 | Language | Persistence |
 | -------- | ----------- |
