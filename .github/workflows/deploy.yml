@@ -128,11 +128,28 @@ jobs:
           echo "   Repository: ${ECR_REPO}"
           echo "   Tag: ${TAG}"
           
-          # Update image repository and tag
-          sed -i "s|repository:.*|repository: ${ECR_REPO}|g" "${VALUES_FILE}"
-          sed -i "s|tag:.*|tag: \"${TAG}\"|g" "${VALUES_FILE}"
+          # Create a backup
+          cp "${VALUES_FILE}" "${VALUES_FILE}.backup"
           
-          echo "✅ Updated ${VALUES_FILE}"
+          # Update only the main service image (first occurrence under 'image:' section)
+          # This preserves infrastructure component images (mysql, redis, postgresql, rabbitmq, dynamodb)
+          awk -v repo="${ECR_REPO}" -v tag="${TAG}" '
+          BEGIN { in_main_image = 0; updated_repo = 0; updated_tag = 0 }
+          /^image:/ { in_main_image = 1; print; next }
+          in_main_image && /^[[:space:]]*repository:/ && !updated_repo { 
+            print "  repository: " repo; updated_repo = 1; next 
+          }
+          in_main_image && /^[[:space:]]*tag:/ && !updated_tag { 
+            print "  tag: \"" tag "\""; updated_tag = 1; next 
+          }
+          /^[a-zA-Z]/ && !/^image:/ { in_main_image = 0 }
+          { print }
+          ' "${VALUES_FILE}.backup" > "${VALUES_FILE}"
+          
+          # Remove backup
+          rm "${VALUES_FILE}.backup"
+          
+          echo "✅ Updated ${VALUES_FILE} (service image only)"
 
       - name: Commit Helm changes for ${{ matrix.service }}
         run: |
