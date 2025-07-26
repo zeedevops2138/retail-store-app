@@ -1,0 +1,339 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ gitops ]
+    paths:
+      - 'src/**'
+      - '.github/workflows/gitops-improved.yml'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [gitops-trigger]
+
+permissions:
+  contents: write
+  security-events: write
+  actions: read
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+jobs:
+  setup-ecr:
+    name: Setup ECR Repositories
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create ECR repositories if they don't exist
+        run: |
+          # List of required ECR repositories
+          REPOS=("retail-store-ui" "retail-store-catalog" "retail-store-cart" "retail-store-checkout" "retail-store-orders")
+          
+          for repo in "${REPOS[@]}"; do
+            echo "🔍 Checking if repository $repo exists..."
+            
+            if aws ecr describe-repositories --repository-names "$repo" --region ${{ env.AWS_REGION }} 2>/dev/null; then
+              echo "✅ Repository $repo already exists"
+            else
+              echo "🚀 Creating repository $repo..."
+              aws ecr create-repository \
+                --repository-name "$repo" \
+                --region ${{ env.AWS_REGION }} \
+                --image-scanning-configuration scanOnPush=true \
+                --encryption-configuration encryptionType=AES256
+              
+              echo "✅ Repository $repo created successfully"
+            fi
+          done
+
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changes.outputs.matrix }}
+      services: ${{ steps.changes.outputs.services }}
+      has-changes: ${{ steps.changes.outputs.has-changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed services
+        id: changes
+        run: |
+          SERVICES=("ui" "catalog" "cart" "checkout" "orders")
+          CHANGED_SERVICES=()
+          
+          # Check for changes in each service
+          for service in "${SERVICES[@]}"; do
+            if git diff --name-only HEAD~1 HEAD | grep -q "^src/$service/" || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+              CHANGED_SERVICES+=("$service")
+              echo "✅ Changes detected in $service"
+            fi
+          done
+          
+          # If no changes detected and not manual trigger, build all
+          if [ ${#CHANGED_SERVICES[@]} -eq 0 ]; then
+            echo "🔄 No specific changes detected, building all services"
+            CHANGED_SERVICES=("${SERVICES[@]}")
+          fi
+          
+          # Create matrix with service-specific configurations
+          MATRIX_SERVICES=()
+          for service in "${CHANGED_SERVICES[@]}"; do
+            MATRIX_SERVICES+=("{\"service\":\"$service\",\"context\":\"src/$service\",\"dockerfile\":\"src/$service/Dockerfile\"}")
+          done
+          
+          # Join array elements with commas
+          IFS=','
+          MATRIX_JSON="[${MATRIX_SERVICES[*]}]"
+          unset IFS
+          
+          MATRIX="{\"include\":$MATRIX_JSON}"
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "services=${CHANGED_SERVICES[*]}" >> $GITHUB_OUTPUT
+          echo "has-changes=true" >> $GITHUB_OUTPUT
+          echo "📊 Generated matrix: $MATRIX"
+
+  build-and-push:
+    name: Build & Push ${{ matrix.service }}
+    needs: [setup-ecr, detect-changes]
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install yq for YAML processing
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod a+x /usr/local/bin/yq
+
+      - name: Generate build metadata
+        id: metadata
+        run: |
+          GIT_COMMIT=$(echo ${{ github.sha }} | cut -c1-7)
+          GIT_BRANCH=${{ github.ref_name }}
+          # Replace / with - in branch names for valid Docker tags
+          GIT_BRANCH=${GIT_BRANCH//\//-}
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Tag format: <branch>-<commit_sha>
+          IMAGE_TAG="${GIT_BRANCH}-${GIT_COMMIT}"
+          
+          echo "git-commit=${GIT_COMMIT}" >> $GITHUB_OUTPUT
+          echo "git-branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
+          echo "build-date=${BUILD_DATE}" >> $GITHUB_OUTPUT
+          echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          
+          echo "🏷️ Generated tag: ${IMAGE_TAG}"
+
+      - name: Build Docker image
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          load: true
+          platforms: linux/amd64
+          tags: localbuild/retail-store-${{ matrix.service }}:${{ steps.metadata.outputs.image-tag }}
+          labels: |
+            org.opencontainers.image.created=${{ steps.metadata.outputs.build-date }}
+            org.opencontainers.image.revision=${{ steps.metadata.outputs.git-commit }}
+            org.opencontainers.image.version=${{ steps.metadata.outputs.image-tag }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=Retail Store ${{ matrix.service }} Service
+            org.opencontainers.image.description=Microservice for retail store ${{ matrix.service }} functionality
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy
+        id: trivy-scan
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          image-ref: localbuild/retail-store-${{ matrix.service }}:${{ steps.metadata.outputs.image-tag }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}.sarif'
+          exit-code: '0'  # Don't fail build on vulnerabilities
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          scanners: 'vuln,config,secret'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+          category: 'trivy-${{ matrix.service }}'
+
+      - name: Tag and push to ECR
+        if: success()
+        run: |
+          ECR_REPO="${{ steps.login-ecr.outputs.registry }}/retail-store-${{ matrix.service }}"
+          IMAGE_TAG="${{ steps.metadata.outputs.image-tag }}"
+          
+          echo "🚀 Pushing to ECR: ${ECR_REPO}:${IMAGE_TAG}"
+          
+          # Tag the local image with ECR repository
+          docker tag localbuild/retail-store-${{ matrix.service }}:${IMAGE_TAG} ${ECR_REPO}:${IMAGE_TAG}
+          docker tag localbuild/retail-store-${{ matrix.service }}:${IMAGE_TAG} ${ECR_REPO}:latest
+          
+          # Push to ECR
+          docker push ${ECR_REPO}:${IMAGE_TAG}
+          docker push ${ECR_REPO}:latest
+          
+          echo "✅ Successfully pushed ${ECR_REPO}:${IMAGE_TAG}"
+
+      - name: Update Helm values
+        if: success()
+        run: |
+          IMAGE_TAG="${{ steps.metadata.outputs.image-tag }}"
+          ECR_REPO="${{ steps.login-ecr.outputs.registry }}/retail-store-${{ matrix.service }}"
+          VALUES_FILE="src/${{ matrix.service }}/chart/values.yaml"
+          
+          echo "🔄 Updating Helm values for ${{ matrix.service }}..."
+          echo "   Repository: ${ECR_REPO}"
+          echo "   Tag: ${IMAGE_TAG}"
+          
+          # Update using yq for reliable YAML processing
+          yq eval ".image.repository = \"${ECR_REPO}\"" -i "${VALUES_FILE}"
+          yq eval ".image.tag = \"${IMAGE_TAG}\"" -i "${VALUES_FILE}"
+          
+          echo "✅ Updated ${{ matrix.service }} Helm values"
+          
+          # Create update summary
+          echo "## ${{ matrix.service }} Image Update" >> image-updates-${{ matrix.service }}.md
+          echo "- **Repository:** ${ECR_REPO}" >> image-updates-${{ matrix.service }}.md
+          echo "- **Tag:** ${IMAGE_TAG}" >> image-updates-${{ matrix.service }}.md
+          echo "- **Git Commit:** ${{ steps.metadata.outputs.git-commit }}" >> image-updates-${{ matrix.service }}.md
+          echo "- **Build Date:** ${{ steps.metadata.outputs.build-date }}" >> image-updates-${{ matrix.service }}.md
+          echo "" >> image-updates-${{ matrix.service }}.md
+
+      - name: Upload update summary
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-updates-${{ matrix.service }}
+          path: image-updates-${{ matrix.service }}.md
+
+  commit-helm-updates:
+    name: Commit Helm Updates
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-and-push]
+    if: success()
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Download all update summaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: image-updates-*
+          merge-multiple: true
+
+      - name: Commit Helm chart updates
+        run: |
+          git config --local user.email "gitops-automation@github.com"
+          git config --local user.name "GitOps Automation"
+          
+          # Check if there are any changes to commit
+          if git diff --quiet src/*/chart/values.yaml; then
+            echo "📝 No Helm chart changes to commit"
+          else
+            echo "📝 Committing Helm chart updates..."
+            
+            git add src/*/chart/values.yaml
+            
+            # Create comprehensive commit message
+            COMMIT_MSG="🔄 Update Helm charts for GitOps deployment
+
+Services updated: ${{ needs.detect-changes.outputs.services }}
+Commit: ${{ github.sha }}
+Branch: ${{ github.ref_name }}
+Triggered by: ${{ github.actor }}
+
+Updated image tags with latest builds from ECR."
+            
+            git commit -m "$COMMIT_MSG"
+            
+            # Push with retry logic
+            for i in {1..5}; do
+              if git push origin gitops; then
+                echo "✅ Successfully pushed Helm chart updates"
+                break
+              else
+                echo "⚠️ Push failed, attempt $i/5. Pulling latest changes..."
+                git pull --rebase origin gitops
+                sleep $((i * 2))
+              fi
+              
+              if [ $i -eq 5 ]; then
+                echo "❌ Failed to push after 5 attempts"
+                exit 1
+              fi
+            done
+          fi
+
+      - name: Create deployment summary
+        if: always()
+        run: |
+          echo "## 🚀 GitOps Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Services Updated:** ${{ needs.detect-changes.outputs.services }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** gitops" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.build-and-push.result }}" == "success" ]; then
+            echo "✅ **Status:** Build and deployment successful" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔄 ArgoCD will detect updated Helm charts" >> $GITHUB_STEP_SUMMARY
+            echo "- 🚀 New deployments will use updated image tags" >> $GITHUB_STEP_SUMMARY
+            echo "- 📊 Monitor deployment status in Kubernetes cluster" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔍 Check Security tab for vulnerability scan results" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Build or deployment failed" >> $GITHUB_STEP_SUMMARY
+            echo "Check the workflow logs for details" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Add update summaries if they exist
+          if ls image-updates-*.md 1> /dev/null 2>&1; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Image Updates:**" >> $GITHUB_STEP_SUMMARY
+            cat image-updates-*.md >> $GITHUB_STEP_SUMMARY
+          fi
