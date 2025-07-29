@@ -13,7 +13,7 @@
   </div>
 
   <strong>
-  <h2>AWS Containers Retail Sample</h2>
+  <h2>Multi-tier Retail Store Application - EKS | Terraform | ArgoCD | HELM | GitHub Actions</h2>
   </strong>
 </div>
 
