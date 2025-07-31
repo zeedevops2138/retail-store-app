@@ -1,7 +1,7 @@
-# GitOps with Amazon EKS Auto Mode 
-
+# Retail Store Sample App - GitOps with Amazon EKS Auto Mode
+ 
 ![Banner](./docs/images/banner.png)
-
+ 
 <div align="center">
   <div align="center">
 
@@ -13,7 +13,7 @@
   </div>
 
   <strong>
-  <h2>Multi-tier Retail Store Application - EKS | Terraform | ArgoCD | HELM | GitHub Actions</h2>
+  <h2>AWS Containers Retail Sample</h2>
   </strong>
 </div>
 
@@ -32,12 +32,20 @@ This is a sample application designed to illustrate various concepts related to 
 - [Infrastructure Components](#infrastructure-components)
 - [CI/CD Pipeline](#cicd-pipeline)
 - [Monitoring and Observability](#monitoring-and-observability)
-- [Cleanup](#cleanup)
+- [Cleanup](https://github.com/pooja-bhavani/retail-store-sample-app/blob/main/README.md#step-12-cleanup)
 - [Troubleshooting](#troubleshooting)
 
 ## Overview
 
 The Retail Store Sample App demonstrates a modern microservices architecture deployed on AWS EKS using GitOps principles. The application consists of multiple services that work together to provide a complete retail store experience:
+
+
+- **UI Service**: Java-based frontend
+- **Catalog Service**: Go-based product catalog API
+- **Cart Service**: Java-based shopping cart API
+- **Orders Service**: Java-based order management API
+- **Checkout Service**: Node.js-based checkout orchestration API
+
 
 ## Application Architecture
 
@@ -47,23 +55,14 @@ The application has been deliberately over-engineered to generate multiple de-co
 
 | Component                  | Language | Container Image                                                             | Helm Chart                                                                        | Description                             |
 | -------------------------- | -------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------- |
-| [UI](./src/ui/)            | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-ui)       | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-ui-chart)       | Store user interface                    |
-| [Catalog](./src/catalog/)  | Go       | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-catalog)  | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-catalog-chart)  | Product catalog API                     |
-| [Cart](./src/cart/)        | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-cart)     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-cart-chart)     | User shopping carts API                 |
-| [Orders](./src/orders)     | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-orders)   | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-orders-chart)   | User orders API                         |
-| [Checkout](./src/checkout) | Node     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-checkout) | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-checkout-chart) | API to orchestrate the checkout process |
+| [UI](./src/ui/)            | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-ui)       | [Link](src/ui/chart/values.yaml)    | Store user interface                    |
+| [Catalog](./src/catalog/)  | Go       | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-catalog)  | [Link](src/catalog/chart/values.yaml)  | Product catalog API                     |
+| [Cart](./src/cart/)        | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-cart)     | [Link](src/cart/chart/values.yaml)     | User shopping carts API                 |
+| [Orders](./src/orders)     | Java     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-orders)   | [Link](src/orders/chart/values.yaml)   | User orders API                         |
+| [Checkout](./src/checkout) | Node     | [Link](https://gallery.ecr.aws/aws-containers/retail-store-sample-checkout) | [Link](src/checkout/chart/values.yaml) | API to orchestrate the checkout process |
 
-![Application Architecture Diagram](./docs/images/application-architecture.png)
-
-- **UI Service**: Java-based frontend
-- **Catalog Service**: Go-based product catalog API
-- **Cart Service**: Java-based shopping cart API
-- **Orders Service**: Java-based order management API
-- **Checkout Service**: Node.js-based checkout orchestration API
 
 ## Infrastructure Architecture
-
-![Infrastructure Architecture Diagram](./docs/images/architecture.png)
 
 The Infrastructure Architecture follows cloud-native best practices:
 
@@ -73,6 +72,7 @@ The Infrastructure Architecture follows cloud-native best practices:
 - **Infrastructure as Code**: All AWS resources defined using Terraform
 - **CI/CD**: Automated build and deployment pipelines with GitHub Actions
 
+![EKS](docs/images/EKS.gif)
 
 
 
@@ -120,6 +120,14 @@ Before you begin, ensure you have the following tools installed:
 - **Helm** 
 
 ## Getting Started
+Install Prerequisites:
+| Tool    | Docs Link  |     
+|-----------------------|------------------------------------|
+| AWS CLI | [Docs](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html) |                                            
+| Terraform | [Docs](https://developer.hashicorp.com/terraform/install) |   
+| Docker | [Docs](https://docs.docker.com/engine/install/) |
+| Helm | [Docs](https://helm.sh/docs/intro/install/) | 
+
 
 Follow these steps to **install Prerequisites:**
 
@@ -127,23 +135,23 @@ Follow these steps to **install Prerequisites:**
 
   * These commands will download and install the **AWS Command Line Interface**.
 
-```sh
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
+    ```sh
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
 
-# Verify the installation
-aws --version
-```
+    # Verify the installation
+    aws --version
+    ```
 
 - #### 2. Terraform:
 
-  - **Terraform** is installed by downloading the binary appropriate for your operating system.
+  - **Terraform** download the binary compatible with your operating system and follow the installation steps.
 
     - <details>
       <summary><strong>Click for Linux & macOS Instructions</strong></summary>
 
-      1.  **Download the Binary**: Go to the [Terraform Downloads Page](https://releases.hashicorp.com/terraform/1.12.2) to find the correct zip file for your system (e.g., Linux AMD64, macOS ARM64).
+      1.  **Download the Binary**: [Download Terraform](https://releases.hashicorp.com/terraform/1.12.2) find the correct zip file for your system.
 
       2.  **Install the Binary**: Unzip the file and move the `terraform` executable to a directory in your system's PATH.
 
@@ -151,11 +159,6 @@ aws --version
         # Example for a downloaded file
         unzip terraform_1.9.0_linux_amd64.zip
         sudo mv terraform /usr/local/bin/
-        ```
-        or
-        ```sh
-        # Example for macOS
-        brew install terraform
         ```
       3.  **Verify the Installation**:
      
@@ -209,7 +212,7 @@ aws --version
 
 - #### [4. Docker](https://docs.docker.com/desktop/setup/install/linux/):
 
-  - > **Step 1: Set Up the Repository:**
+  - **Step 1: Set Up the Repository:**
 
     ```sh
     sudo apt-get update
@@ -219,7 +222,7 @@ aws --version
         gnupg
     ```
 
-  - > **Step 2: Add Docker’s Official GPG Key:**
+  - **Step 2: Add Docker’s Official GPG Key:**
 
     ```sh
     sudo install -m 0755 -d /etc/apt/keyrings
@@ -227,7 +230,7 @@ aws --version
     sudo chmod a+r /etc/apt/keyrings/docker.gpg
     ```
   
-  - > **Step 3: Set Up the Docker Repository:**
+  - **Step 3: Set Up the Docker Repository:**
 
     ```sh
     echo \
@@ -236,8 +239,7 @@ aws --version
       sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     ```
 
-
-  - > **Step 4: Install Docker Engine:**
+  - **Step 4: Install Docker Engine:**
     
     ```sh
     sudo apt-get update
@@ -249,15 +251,12 @@ aws --version
 
 - #### 5. Helm:
   
-    ```sh
-    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-    chmod 700 get_helm.sh
-    ./get_helm.sh --version v3.18.4
-    ```
+       curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+      chmod 700 get_helm.sh
+      ./get_helm.sh --version v3.18.4
 
 
-
-Follow these steps to deploy the application:
+## Follow these steps to deploy the application:
 
 ### Step 1. Configure AWS with **`Root User`** Credentials:
 
@@ -271,7 +270,6 @@ aws configure
 
 ```sh
 git clone https://github.com/LondheShubham153/retail-store-sample-app.git
-cd retail-store-sample-app
 ```
 
 > [!IMPORTANT]
@@ -287,17 +285,6 @@ cd retail-store-sample-app
 > - Uses private ECR with automated CI/CD
 > - Requires GitHub Actions setup
 > - See [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md) for complete setup
->
-> ### GitHub Actions Setup (Production Branch Only):
-> 
-> If using the Production branch, configure these secrets in your GitHub repository:
-> 
-> | Secret Name           | Value                              |
-> |-----------------------|------------------------------------|
-> | `AWS_ACCESS_KEY_ID`   | `Your AWS Access Key ID`           |
-> | `AWS_SECRET_ACCESS_KEY` | `Your AWS Secret Access Key`     |
-> | `AWS_REGION`          | `region-name`                       |
-> | `AWS_ACCOUNT_ID`        | `your-account-id` |
 
 
 ### Step 4. Deploy Infrastructure with Terraform:
@@ -336,10 +323,21 @@ aws eks update-kubeconfig --name retail-store --region <region>
 terraform apply --auto-approve
 ```
 
+
 This deploys:
 - ArgoCD for Setup GitOps
 - NGINX Ingress Controller
 - Cert Manager for SSL certificates
+
+> Application is live with Public image:
+
+- Get your ingress EXTERNAL-IP and paste it in the browser to access retail-store application.
+    ```sh
+    kubectl get svc -n ingress-nginx
+    ```
+
+> [!NOTE]
+> Let's move forward with GitOps principle utilising Amazon private registry to create private registry and store images.
 
 ### Step 7: GitHub Actions (Production Branch Only)
 
@@ -457,7 +455,7 @@ terraform destroy --auto-approve
 <img width="1139" height="439" alt="image" src="https://github.com/user-attachments/assets/5258761a-01c4-49d0-b6f3-997fc10a9f35" />
 
 > [!NOTE]
-> Only ECR Repositories you need to Delete it from AWS Console Manually.
+> ECR Repositories you need to Delete it from AWS Console Manually.
 
 
 
