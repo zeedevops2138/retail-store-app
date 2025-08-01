@@ -108,152 +108,70 @@ This repository uses a **dual-branch approach** for different deployment scenari
 
 > **📚 For detailed branching strategy, CI/CD setup, and advanced workflows, see [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md)**
 
-## Prerequisites
-
-Before you begin, ensure you have the following tools installed:
-
-- **AWS CLI** (configured with appropriate credentials)
-- **Terraform** (version 1.0.0 or later)
-- **kubectl** (compatible with Kubernetes 1.23+)
-- **Git** (2.0.0 or later)
-- **Docker** (for local development)
-- **Helm** 
-
 ## Getting Started
-Install Prerequisites:
-| Tool    | Docs Link  |     
-|-----------------------|------------------------------------|
-| AWS CLI | [Docs](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html) |                                            
-| Terraform | [Docs](https://developer.hashicorp.com/terraform/install) |   
-| Docker | [Docs](https://docs.docker.com/engine/install/) |
-| Helm | [Docs](https://helm.sh/docs/intro/install/) | 
 
+### Prerequisites
+
+1. **Install Prerequisites**: AWS CLI, Terraform, kubectl, Docker, Helm
+2. **Configure AWS**: `aws configure` with appropriate credentials
+3. **Clone Repository**: `git clone https://github.com/LondheShubham153/retail-store-sample-app.git`
+4. **Deploy Infrastructure**: Run Terraform in two phases (see [Getting Started](#getting-started))
+5. **Access Application**: Get load balancer URL and browse the retail store
+
+### **Required Tools**
+
+| Tool          | Version | Installation                                                                         |
+| ------------- | ------- | ------------------------------------------------------------------------------------ |
+| **AWS CLI**   | v2+     | [Install Guide](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) |
+| **Terraform** | 1.0+    | [Install Guide](https://developer.hashicorp.com/terraform/install)                   |
+| **kubectl**   | 1.33+   | [Install Guide](https://kubernetes.io/docs/tasks/tools/)                             |
+| **Docker**    | 20.0+   | [Install Guide](https://docs.docker.com/get-docker/)                                 |
+| **Helm**      | 3.0+    | [Install Guide](https://helm.sh/docs/intro/install/)                                 |
+| **Git**       | 2.0+    | [Install Guide](https://git-scm.com/downloads) 
 
 Follow these steps to **install Prerequisites:**
 
-- #### 1. AWS CLI:
 
-  * These commands will download and install the **AWS Command Line Interface**.
+### **Quick Installation Scripts**
 
-    ```sh
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
-    sudo ./aws/install
+<details>
+<summary><strong>🔧 One-Click Installation</strong></summary>
 
-    # Verify the installation
-    aws --version
-    ```
+```bash
+#!/bin/bash
+# Install all prerequisites
 
-- #### 2. Terraform:
+# AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
 
-  - **Terraform** download the binary compatible with your operating system and follow the installation steps.
+# Terraform
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt-get update && sudo apt-get install terraform
 
-    - <details>
-      <summary><strong>Click for Linux & macOS Instructions</strong></summary>
+# kubectl
+curl -LO "https://dl.k8s.io/release/v1.33.3/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
 
-      1.  **Download the Binary**: [Download Terraform](https://releases.hashicorp.com/terraform/1.12.2) find the correct zip file for your system.
+# Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
 
-      2.  **Install the Binary**: Unzip the file and move the `terraform` executable to a directory in your system's PATH.
+# Helm
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-        ```sh
-        # Example for a downloaded file
-        unzip terraform_1.9.0_linux_amd64.zip
-        sudo mv terraform /usr/local/bin/
-        ```
-      3.  **Verify the Installation**:
-     
-        ```sh
-        terraform --version
-        ```
-      </details>
-  
-    - <details>
-      <summary><strong>Click for Windows Instructions</strong></summary>
-  
-        * **Official Guide:** [Install Terraform on Windows](https://developer.hashicorp.com/terraform/install)
-    
-      </details>
+# Verify installations
+aws --version
+terraform --version
+kubectl version --client
+docker --version
+helm version
+```
 
-- #### 3. kubectl:
-
-  * These commands install a specific version of **kubectl**.
-
-    - <details>
-      <summary><strong>Click for macOS Instructions</strong></summary>
-  
-        ```sh
-        # Download the kubectl binary
-        curl -LO "https://dl.k8s.io/release/v1.33.3/bin/darwin/arm64/kubectl"
-
-        # Make the binary executable
-        chmod +x ./kubectl
-
-          # Move the binary into your PATH
-        sudo mv ./kubectl /usr/local/bin/kubectl
-        ```
-
-      </details>
-
-    - <details>
-      <summary><strong>Click for Linux Instructions</strong></summary>
-  
-      ```sh
-      # Download the kubectl binary
-      curl -LO "https://dl.k8s.io/release/v1.33.3/bin/linux/amd64/kubectl"
-  
-      # Make the binary executable
-      chmod +x ./kubectl
-
-      # Move the binary into your PATH
-      sudo mv ./kubectl /usr/local/bin/kubectl
-      ```
-      
-      </details>
-
-- #### [4. Docker](https://docs.docker.com/desktop/setup/install/linux/):
-
-  - **Step 1: Set Up the Repository:**
-
-    ```sh
-    sudo apt-get update
-    sudo apt-get install \
-        ca-certificates \
-        curl \
-        gnupg
-    ```
-
-  - **Step 2: Add Docker’s Official GPG Key:**
-
-    ```sh
-    sudo install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    sudo chmod a+r /etc/apt/keyrings/docker.gpg
-    ```
-  
-  - **Step 3: Set Up the Docker Repository:**
-
-    ```sh
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    ```
-
-  - **Step 4: Install Docker Engine:**
-    
-    ```sh
-    sudo apt-get update
-    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-    # Verify the installation
-    docker --version
-    ```
-
-- #### 5. Helm:
-  
-       curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-      chmod 700 get_helm.sh
-      ./get_helm.sh --version v3.18.4
+</details>
 
 
 ## Follow these steps to deploy the application:
@@ -490,3 +408,19 @@ Error: Failed to pull image "123456789012.dkr.ecr.us-west-2.amazonaws.com/retail
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](./LICENSE) file for details.
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/LondheShubham153/retail-store-sample-app/issues)
+- **Discord**: [TrainWithShubhamCommunity](https://discord.gg/kGEr9mR5gT)
+
+---
+
+<div align="center">
+
+**⭐ Star this repository if you found it helpful!**
+
+**🔄 For advanced GitOps workflows, see [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md)**
+
+</div>
+
