@@ -8,7 +8,7 @@ checkout:
   fullnameOverride: checkout
   retail:
     checkout:
-      endpoints:
+      endpoints: 
         orders: http://orders:80
 
 orders:
