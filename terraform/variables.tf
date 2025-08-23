@@ -1,57 +1,66 @@
-# =============================================================================
-# INPUT VARIABLES
-# =============================================================================
+# ========== VPC VARIABLES =========
 
-variable "aws_region" {
-  description = "AWS region where resources will be created"
+variable "vpc_name" {
+  description = "The name of the VPC"
   type        = string
-  default     = "us-west-2"
-}
-
-variable "cluster_name" {
-  description = "Name of the EKS cluster"
-  type        = string
-  default     = "retail-store"
-}
-
-variable "environment" {
-  description = "Environment name (dev, staging, prod)"
-  type        = string
-  default     = "dev"
-}
-
-variable "kubernetes_version" {
-  description = "Kubernetes version for EKS cluster"
-  type        = string
-  default     = "1.33"
+  default     = "vpc"
 }
 
 variable "vpc_cidr" {
-  description = "CIDR block for VPC"
+  description = "The CIDR block for the VPC"
   type        = string
   default     = "10.0.0.0/16"
 }
 
-variable "argocd_namespace" {
-  description = "Namespace to install ArgoCD"
+variable "azs" {
+  description = "List of availability zones to use"
+  type        = list(string)
+  default     = ["us-east-1a", "us-east-1b"]
+}
+
+variable "public_subnets" {
+  description = "List of public subnet CIDR blocks"
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+}
+
+variable "private_subnets" {
+  description = "List of private subnet CIDR blocks"
+  type        = list(string)
+  default     = ["10.0.3.0/24", "10.0.4.0/24"]  
+}
+variable "tags" {
+  description = "Tags to apply to the VPC and its resources"
+  type        = map(string)
+  default     = {
+    Terraform   = "true"
+    Environment = "dev"
+  } 
+}
+
+
+# ========= EKS VARIABLES =========
+
+variable "eks_cluster_name" {
+  description = "The name of the EKS cluster"
   type        = string
-  default     = "argocd"
+  default     = "Eks-cluster"
 }
 
-variable "argocd_chart_version" {
-  description = "ArgoCD Helm chart version"
+variable "eks_kubernetes_version" {
+  description = "The Kubernetes version for the EKS cluster"
   type        = string
-  default     = "5.51.6"
+  default     = "1.33"
 }
 
-variable "enable_single_nat_gateway" {
-  description = "Use single NAT gateway to reduce costs (not recommended for production)"
-  type        = bool
-  default     = true
+variable "ami_type" {
+  description = "The AMI type for EKS managed node groups"
+  type        = string
+  default     = "AL2023_x86_64_STANDARD"  
 }
-
-variable "enable_monitoring" {
-  description = "Enable monitoring stack (Prometheus, Grafana)"
-  type        = bool
-  default     = false
+variable "instance_types" {
+  description = "The instance types for EKS managed node groups"
+  type        = list(string)
+  default     = ["t2.medium"]
+  
 }

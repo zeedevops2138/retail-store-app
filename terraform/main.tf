@@ -1,82 +1,144 @@
-# =============================================================================
-# MAIN INFRASTRUCTURE RESOURCES
-# =============================================================================
+# ============ VPC AND EKS MODULES CONFIGURATION ==============
 
-# =============================================================================
-# VPC CONFIGURATION
-# =============================================================================
+
+# =============== VPC MODULE ===============
+# ==========================================
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
 
-  name = "${var.cluster_name}-vpc"
+  name = var.vpc_name
   cidr = var.vpc_cidr
 
-  azs             = local.azs
-  public_subnets  = local.public_subnets
-  private_subnets = local.private_subnets
+  azs             = var.azs
+  public_subnets  = var.public_subnets
+  private_subnets = var.private_subnets
 
-  # NAT Gateway configuration
   enable_nat_gateway = true
-  single_nat_gateway = var.enable_single_nat_gateway
+  single_nat_gateway = true
 
-  # Internet Gateway
-  create_igw = true
-
-  # DNS configuration
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  # Manage default resources for better control
-  manage_default_network_acl    = true
-  default_network_acl_tags      = { Name = "${var.cluster_name}-default-nacl" }
-  manage_default_route_table    = true
-  default_route_table_tags      = { Name = "${var.cluster_name}-default-rt" }
-  manage_default_security_group = true
-  default_security_group_tags   = { Name = "${var.cluster_name}-default-sg" }
-
-  # Apply Kubernetes-specific tags to subnets
-  public_subnet_tags  = merge(local.common_tags, local.public_subnet_tags)
-  private_subnet_tags = merge(local.common_tags, local.private_subnet_tags)
-
-  tags = local.common_tags
+  tags = var.tags
 }
 
-# =============================================================================
-# EKS CLUSTER CONFIGURATION
-# =============================================================================
+# ================ EKS MODULE ===============
+# ==========================================
 
-module "retail_app_eks" {
+module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.31"
+  version = "~> 21.0"
 
-  # Basic cluster configuration
-  cluster_name    = local.cluster_name
-  cluster_version = var.kubernetes_version
+  name               = var.eks_cluster_name
+  kubernetes_version = var.eks_kubernetes_version
+  
 
-  # Cluster access configuration
-  cluster_endpoint_public_access           = true
-  cluster_endpoint_private_access          = true
+  # Optional
+  endpoint_public_access = true
+
+  # Optional: Adds the current caller identity as an administrator via cluster access entry
   enable_cluster_creator_admin_permissions = true
 
-  # EKS Auto Mode configuration - simplified node management
-  cluster_compute_config = {
-    enabled    = true
-    node_pools = ["general-purpose"]
+  vpc_id                   = module.vpc.vpc_id
+  subnet_ids               = module.vpc.private_subnets
+  control_plane_subnet_ids = module.vpc.private_subnets
+  additional_security_group_ids = [aws_security_group.eks_cluster_sg.id]
+
+  # EKS Managed Node Group(s)
+  eks_managed_node_groups = {
+    example = {
+
+      ami_type       = var.ami_type
+      instance_types = var.instance_types
+      min_size     = 2
+      max_size     = 4
+      desired_size = 2
+
+    }
   }
 
-  # Network configuration
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets
+  tags = var.tags
 
-  # KMS configuration to avoid conflicts
-  create_kms_key = true
-  kms_key_description = "EKS cluster ${local.cluster_name} encryption key"
-  kms_key_deletion_window_in_days = 7
-  
-  # Cluster logging (optional - can be expensive)
-  cluster_enabled_log_types = []
-
-  tags = local.common_tags
 }
+
+# ================ HELM RELEASE FOR ARGOCD ===============
+# ========================================================
+
+resource "time_sleep" "wait_for_cluster" {
+  create_duration = "30s"
+  depends_on = [
+    module.eks,
+    module.eks.addons
+  ]
+}
+
+resource "helm_release" "argocd" {
+  name             = "argocd"
+  namespace        = "argocd"
+  create_namespace = true
+
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  version    = "5.51.6"
+
+  values = [
+    yamlencode({
+      server = {
+        service = {
+          type = "ClusterIP"  # Port-forwarding access only
+        }
+        ingress = {
+          enabled = false
+        }
+        extraArgs = ["--insecure"]
+      }
+
+      controller = {
+        resources = {
+          requests = {
+            cpu    = "100m"
+            memory = "128Mi"
+          }
+          limits = {
+            cpu    = "500m"
+            memory = "512Mi"
+          }
+        }
+      }
+
+      repoServer = {
+        resources = {
+          requests = {
+            cpu    = "50m"
+            memory = "64Mi"
+          }
+          limits = {
+            cpu    = "200m"
+            memory = "256Mi"
+          }
+        }
+      }
+
+      redis = {
+        resources = {
+          requests = {
+            cpu    = "50m"
+            memory = "64Mi"
+          }
+          limits = {
+            cpu    = "200m"
+            memory = "128Mi"
+          }
+        }
+      }
+    })
+  ]
+
+  depends_on = [time_sleep.wait_for_cluster]
+}
+
+resource "time_sleep" "wait_for_argocd" {
+  create_duration = "60s"
+  depends_on      = [helm_release.argocd]
+}
+
+

@@ -1,110 +1,104 @@
-# =============================================================================
-# EKS ADD-ONS AND EXTENSIONS
-# =============================================================================
 
-module "eks_addons" {
-  source  = "aws-ia/eks-blueprints-addons/aws"
-  version = "~> 1.0"
+# ===========EKS Core Addons ============
 
-  # Cluster information
-  cluster_name      = module.retail_app_eks.cluster_name
-  cluster_endpoint  = module.retail_app_eks.cluster_endpoint
-  cluster_version   = module.retail_app_eks.cluster_version
-  oidc_provider_arn = module.retail_app_eks.oidc_provider_arn
 
-  # =============================================================================
-  # CERT-MANAGER - SSL Certificate Management
-  # =============================================================================
-  enable_cert_manager = true
-  cert_manager = {
-    most_recent = true
-    namespace   = "cert-manager"
-  }
+resource "aws_eks_addon" "vpc_cni" {
+  cluster_name = module.eks.cluster_name
+  addon_name   = "vpc-cni"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+  depends_on = [module.eks]
+}
 
-  # =============================================================================
-  # NGINX INGRESS CONTROLLER - Load Balancing and Routing
-  # =============================================================================
-  enable_ingress_nginx = true
-  ingress_nginx = {
-    most_recent = true
-    namespace   = "ingress-nginx"
-    
-    # Basic configuration
-    set = [
-      {
-        name  = "controller.service.type"
-        value = "LoadBalancer"
-      },
-      {
-        name  = "controller.service.externalTrafficPolicy"
-        value = "Local"
-      },
-      {
-        name  = "controller.resources.requests.cpu"
-        value = "100m"
-      },
-      {
-        name  = "controller.resources.requests.memory"
-        value = "128Mi"
-      },
-      {
-        name  = "controller.resources.limits.cpu"
-        value = "200m"
-      },
-      {
-        name  = "controller.resources.limits.memory"
-        value = "256Mi"
+resource "aws_eks_addon" "kube_proxy" {
+  cluster_name = module.eks.cluster_name
+  addon_name   = "kube-proxy"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+  depends_on = [module.eks]
+}
+
+resource "aws_eks_addon" "coredns" {
+  cluster_name = module.eks.cluster_name
+  addon_name   = "coredns"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+  depends_on = [module.eks]
+}
+
+
+# ======= Wait until EKS is ready ========
+
+
+resource "time_sleep" "wait_for_eks" {
+  create_duration = "30s"
+  depends_on      = [
+    aws_eks_addon.vpc_cni,
+    aws_eks_addon.kube_proxy,
+    aws_eks_addon.coredns
+  ]
+}
+
+
+# ========= NGINX Ingress Controller via Helm ========
+
+
+resource "helm_release" "nginx_ingress" {
+  name             = "ingress-nginx"
+  repository       = "https://kubernetes.github.io/ingress-nginx"
+  chart            = "ingress-nginx"
+  version          = "4.13.1"
+  namespace        = "ingress-nginx"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      controller = {
+        metrics = {
+          enabled = true
+        }
+        service = {
+          type = "LoadBalancer"
+        }
       }
-    ]
-    
-    # AWS Load Balancer specific annotations
-    set_sensitive = [
-      {
-        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-scheme"
-        value = "internet-facing"
-      },
-      {
-        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
-        value = "nlb"
-      },
-      {
-        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-nlb-target-type"
-        value = "instance"
-      },
-      {
-        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-path"
-        value = "/healthz"
-      },
-      {
-        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-port"
-        value = "10254"
-      },
-      {
-        name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-health-check-protocol"
-        value = "HTTP"
+    })
+  ]
+
+  depends_on = [time_sleep.wait_for_eks]
+}
+
+
+# ========= Prometheus Stack (Monitoring) ===========
+
+
+resource "helm_release" "kube_prometheus_stack" {
+  name             = "kube-prometheus-stack"
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "kube-prometheus-stack"
+  version          = "56.21.3"
+  namespace        = "monitoring"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      prometheus = {
+        ingress = {
+          enabled           = true
+          ingressClassName = "nginx"
+          hosts            = ["prometheus.local"]
+        }
       }
-    ]
-  }
+      grafana = {
+        enabled = true
+        ingress = {
+          enabled           = true
+          ingressClassName = "nginx"
+          hosts            = ["grafana.local"]
+        }
+        adminPassword = "admin" # Change this in real environments!
+      }
+    })
+  ]
 
-  # =============================================================================
-  # OPTIONAL: MONITORING STACK
-  # =============================================================================
-  # Uncomment below to enable monitoring (increases costs)
-  
-  # enable_kube_prometheus_stack = var.enable_monitoring
-  # kube_prometheus_stack = {
-  #   most_recent = true
-  #   namespace   = "monitoring"
-  # }
-
-  # =============================================================================
-  # OPTIONAL: AWS LOAD BALANCER CONTROLLER
-  # =============================================================================
-  # enable_aws_load_balancer_controller = true
-  # aws_load_balancer_controller = {
-  #   most_recent = true
-  #   namespace   = "kube-system"
-  # }
-
-  depends_on = [module.retail_app_eks]
+  depends_on = [helm_release.nginx_ingress]
 }
