@@ -1,0 +1,80 @@
+name: Bootstrap to ECR
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+jobs:
+  bootstrap:
+    name: Bootstrap all services to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push all services
+        run: |
+          SERVICES=("ui" "catalog" "cart" "checkout" "orders")
+          AWS_ACCOUNT_ID="${{ secrets.AWS_ACCOUNT_ID }}"
+          TAG="bootstrap"  # optional: can use latest or a static tag
+
+          for SERVICE in "${SERVICES[@]}"; do
+            ECR_REPO="${AWS_ACCOUNT_ID}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/retail-store-${SERVICE}"
+
+            echo "🔧 Creating ECR repo if it doesn't exist: retail-store-${SERVICE}"
+            aws ecr describe-repositories --repository-names "retail-store-${SERVICE}" 2>/dev/null || \
+            aws ecr create-repository --repository-name "retail-store-${SERVICE}" \
+              --image-scanning-configuration scanOnPush=true \
+              --encryption-configuration encryptionType=AES256
+
+            echo "🚀 Building image: $SERVICE"
+            docker build -t "${ECR_REPO}:${TAG}" -t "${ECR_REPO}:latest" "src/${SERVICE}/"
+
+            echo "📤 Pushing image to ECR: ${ECR_REPO}:${TAG}"
+            docker push "${ECR_REPO}:${TAG}"
+            docker push "${ECR_REPO}:latest"
+
+            echo "📝 Updating Helm values for $SERVICE"
+
+            VALUES_FILE="src/${SERVICE}/chart/values.yaml"
+            cp "${VALUES_FILE}" "${VALUES_FILE}.backup"
+
+            awk -v repo="${ECR_REPO}" -v tag="${TAG}" '
+            BEGIN { in_main_image = 0; updated_repo = 0; updated_tag = 0 }
+            /^image:/ { in_main_image = 1; print; next }
+            in_main_image && /^[[:space:]]*repository:/ && !updated_repo {
+              print "  repository: " repo; updated_repo = 1; next
+            }
+            in_main_image && /^[[:space:]]*tag:/ && !updated_tag {
+              print "  tag: \"" tag "\""; updated_tag = 1; next
+            }
+            /^[a-zA-Z]/ && !/^image:/ { in_main_image = 0 }
+            { print }
+            ' "${VALUES_FILE}.backup" > "${VALUES_FILE}"
+
+            rm "${VALUES_FILE}.backup"
+          done
+
+      - name: Commit and push Helm value updates
+        run: |
+          git config --local user.email "gitops@github.com"
+          git config --local user.name "GitOps Bot"
+
+          git checkout -b bootstrap-ecr
+          git add src/**/chart/values.yaml
+          git commit -m "🚀 Bootstrap: Updated Helm charts with personal ECR images"
+          git push origin bootstrap-ecr
+
+          echo "✅ Bootstrap complete. Create a PR from 'bootstrap-ecr' to 'gitops' branch to trigger ArgoCD sync"
