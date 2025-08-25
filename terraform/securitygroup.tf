@@ -1,7 +1,7 @@
 # Custom EKS cluster security group
 
 resource "aws_security_group" "eks_cluster_sg" {
-  name        = "${var.eks_cluster_name}-custom-sg"
+  name        = "${var.cluster_name}-custom-sg"
   description = "Custom EKS cluster security group"
   vpc_id      = module.vpc.vpc_id
 

@@ -41,16 +41,16 @@ variable "tags" {
 
 # ========= EKS VARIABLES =========
 
-variable "eks_cluster_name" {
+variable "cluster_name" {
   description = "The name of the EKS cluster"
   type        = string
   default     = "Eks-cluster"
 }
 
-variable "eks_kubernetes_version" {
+variable "cluster_version" {
   description = "The Kubernetes version for the EKS cluster"
   type        = string
-  default     = "1.33"
+  default     = "1.31"
 }
 
 variable "ami_type" {

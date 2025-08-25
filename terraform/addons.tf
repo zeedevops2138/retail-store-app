@@ -102,3 +102,22 @@ resource "helm_release" "kube_prometheus_stack" {
 
   depends_on = [helm_release.nginx_ingress]
 }
+
+# ========= Certificate Manager ===========
+
+resource "helm_release" "cert_manager" {
+  name             = "cert-manager"
+  repository       = "https://charts.jetstack.io"
+  chart            = "cert-manager"
+  version          = "v1.18.2" 
+  namespace        = "cert-manager"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      installCRDs = true
+    })
+  ]
+
+  depends_on = [module.eks]
+}
